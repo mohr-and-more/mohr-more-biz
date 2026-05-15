@@ -121,6 +121,27 @@
     transition: width 0.3s;
   }
   nav a:hover { color: var(--text); }
+  .lang-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 1rem;
+  }
+  .lang-switch button {
+    background: none;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.2rem 0.35rem;
+    transition: color 0.2s;
+  }
+  .lang-switch button.active { color: var(--text); }
+  .lang-switch button:hover { color: var(--text); }
+  .lang-switch .lang-sep { color: var(--border); font-size: 0.65rem; }
   nav a:hover::after { width: 100%; }
   .nav-cta {
     border: 1px solid var(--border);
@@ -403,12 +424,17 @@
         </svg>
         MOHR
       </a>
+      <div class="lang-switch">
+        <button id="lang-de" class="active" onclick="setLang('de')">DE</button>
+        <span class="lang-sep">/</span>
+        <button id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
       <nav>
-        <a href="#manifest">Position</a>
-        <a href="#system">System</a>
-        <a href="#principles">Prinzipien</a>
+        <a href="#manifest" data-i18n="nav_position">Position</a>
+        <a href="#system" data-i18n="nav_system">System</a>
+        <a href="#principles" data-i18n="nav_principles">Prinzipien</a>
         <a href="#vision">Vision</a>
-        <a href="#kontakt" class="nav-cta">Kontakt</a>
+        <a href="#kontakt" class="nav-cta" data-i18n="nav_contact">Kontakt</a>
       </nav>
     </div>
   </header>
@@ -585,6 +611,189 @@
   </footer>
 
   <script>
+    const i18n = {
+      de: {
+        nav_position: 'Position',
+        nav_system: 'System',
+        nav_principles: 'Prinzipien',
+        nav_contact: 'Kontakt',
+        hero_label: 'Unternehmerduo // 2026',
+        hero_p: 'Gregor Mohr und Gunnar Mohr verbinden Handelsrealität mit technologischer Umsetzungskraft. Zwei komplementäre Profile. Ein gemeinsames System für moderne Geschäftsmodelle an der Schnittstelle von Markt und Infrastruktur.',
+        hero_btn1: 'Strategisches Gespräch',
+        hero_btn2: 'System erkunden',
+        manifest_label: 'Positionierung',
+        manifest_h2: 'Praxis trifft<br>Innovation.',
+        manifest_p: 'Wir operieren an der Schnittstelle von <strong>realem Commerce</strong> und <strong>digitaler Infrastruktur</strong>. Gregor Mohr bringt das Handelsverständnis. Gunnar Mohr liefert die technologische Durchschlagskraft. Das Ergebnis ist ein Unternehmerprofil, das Märkte nicht nur analysiert, sondern aktiv gestaltet — mit pragmatischer Erfahrung auf der einen und KI-gestützter Exekution auf der anderen Seite.',
+        sys_label: 'Systemarchitektur',
+        sys_h2: 'Zwei Module.<br>Eine Plattform.',
+        sys1_badge: 'MODULE_01',
+        sys1_role: 'Gregor Mohr // Commerce',
+        sys1_h3: 'Handel, Sourcing & Distribution',
+        sys1_l1: 'trabusco — passion for trade',
+        sys1_l2: 'Handelsagentur & internationales Trading',
+        sys1_l3: 'Restposten, Retouren & Sekundärmärkte',
+        sys1_l4: 'alles10euro & PermaX',
+        sys1_l5: 'Belastbare Vertriebs- und Sourcing-Netzwerke',
+        sys1_l6: 'Pragmatische, marktorientierte Geschäftsentwicklung',
+        sys2_badge: 'MODULE_02',
+        sys2_role: 'Gunnar Mohr // Technology',
+        sys2_h3: 'KI, Automatisierung & Plattformentwicklung',
+        sys2_l1: 'TerminTelefon.de — KI-Sprachsysteme',
+        sys2_l2: 'LazyCode — digitale Produktumsetzung',
+        sys2_l3: 'nodeSim — IoT, eSIM-NFT & Connectivity-Monetarisierung',
+        sys2_l4: 'Proof of Diversity (PoD) — Blockchain-Konsens',
+        sys2_l5: 'Full-Stack-Entwicklung & Systemintegration',
+        sys2_l6: 'Automatisierung und agentenbasierte Prozesse',
+        pr_label: 'Betriebsprinzipien',
+        pr_h2: 'Was dieses<br>System antreibt.',
+        pr1_h4: 'Pragmatik',
+        pr1_p: 'Keine Theorie ohne Marktvalidierung. Jede Idee wird anhand realer Handelsstrukturen und technischer Machbarkeit geprüft, bevor sie skaliert.',
+        pr2_h4: 'Autonomie',
+        pr2_p: 'Eigene Produkte, eigene Infrastruktur, eigene Konsensmechanismen. Von der Supply Chain bis zum Blockchain-Protokoll.',
+        pr3_h4: 'Tiefe',
+        pr3_p: 'Vom Sourcing in der Restposten-Logistik bis zum KI-Modell. Ende-zu-Ende-Kompetenz statt oberflächlicher Integrationen.',
+        pr4_h4: 'Skalierung',
+        pr4_p: 'Modulare Architektur für internationale Geschäftsmodelle. Handelsnetzwerke und digitale Plattformen wachsen gemeinsam.',
+        vis_label: 'Zukunftssystem',
+        vis_h2: 'Die nächste Ebene<br>der Wertschöpfung.',
+        vis_p: 'Wir bauen Unternehmen und Infrastrukturen, die ohne Aufsehen funktionieren. Stille Effizienz. Hinter den Kulissen. Von der Restposten-Distribution bis zur dezentralen Konnektivitätsmonetarisierung. Die Zukunft gehört denen, die Handel und Technologie als eine Einheit begreifen — nicht als getrennte Disziplinen. Dieses Profil ist für Investoren, strategische Partner und Geschäftsanfragen international anschlussfähig positioniert.',
+        cta_label: 'Initiieren',
+        cta_h2: 'Verbindung<br>aufbauen.',
+        cta_p: 'Für strategische Anfragen, Kooperationen und Investorenkontakte. Wir antworten präzise und zeitnah.',
+        cta_btn: 'Kontakt aufnehmen',
+        foot_imprint: 'Impressum',
+        foot_privacy: 'Datenschutz'
+      },
+      en: {
+        nav_position: 'Position',
+        nav_system: 'System',
+        nav_principles: 'Principles',
+        nav_contact: 'Contact',
+        hero_label: 'Entrepreneurial Duo // 2026',
+        hero_p: 'Gregor Mohr and Gunnar Mohr combine hands-on commerce with technological execution power. Two complementary profiles. One unified system for modern business models at the intersection of market and infrastructure.',
+        hero_btn1: 'Strategic Discussion',
+        hero_btn2: 'Explore System',
+        manifest_label: 'Positioning',
+        manifest_h2: 'Practice Meets<br>Innovation.',
+        manifest_p: 'We operate at the intersection of <strong>real commerce</strong> and <strong>digital infrastructure</strong>. Gregor Mohr brings deep trade expertise. Gunnar Mohr delivers technological firepower. The result is an entrepreneurial profile that doesn\'t just analyze markets — it actively shapes them, combining pragmatic experience with AI-driven execution.',
+        sys_label: 'System Architecture',
+        sys_h2: 'Two Modules.<br>One Platform.',
+        sys1_badge: 'MODULE_01',
+        sys1_role: 'Gregor Mohr // Commerce',
+        sys1_h3: 'Trade, Sourcing & Distribution',
+        sys1_l1: 'trabusco — passion for trade',
+        sys1_l2: 'Trading agency & international commerce',
+        sys1_l3: 'Surplus goods, returns & secondary markets',
+        sys1_l4: 'alles10euro & PermaX',
+        sys1_l5: 'Proven sales and sourcing networks',
+        sys1_l6: 'Pragmatic, market-driven business development',
+        sys2_badge: 'MODULE_02',
+        sys2_role: 'Gunnar Mohr // Technology',
+        sys2_h3: 'AI, Automation & Platform Development',
+        sys2_l1: 'TerminTelefon.de — AI voice systems',
+        sys2_l2: 'LazyCode — digital product realization',
+        sys2_l3: 'nodeSim — IoT, eSIM-NFT & connectivity monetization',
+        sys2_l4: 'Proof of Diversity (PoD) — blockchain consensus',
+        sys2_l5: 'Full-stack development & system integration',
+        sys2_l6: 'Automation and agent-based processes',
+        pr_label: 'Operating Principles',
+        pr_h2: 'What Drives<br>This System.',
+        pr1_h4: 'Pragmatism',
+        pr1_p: 'No theory without market validation. Every idea is tested against real trade structures and technical feasibility before it scales.',
+        pr2_h4: 'Autonomy',
+        pr2_p: 'Own products, own infrastructure, own consensus mechanisms. From supply chain to blockchain protocol.',
+        pr3_h4: 'Depth',
+        pr3_p: 'From surplus logistics sourcing to AI models. End-to-end competence over superficial integrations.',
+        pr4_h4: 'Scale',
+        pr4_p: 'Modular architecture for international business models. Trade networks and digital platforms growing together.',
+        vis_label: 'Future System',
+        vis_h2: 'The Next Level<br>of Value Creation.',
+        vis_p: 'We build companies and infrastructure that work without fanfare. Silent efficiency. Behind the scenes. From surplus distribution to decentralized connectivity monetization. The future belongs to those who understand commerce and technology as one — not as separate disciplines. This profile is positioned for international reach with investors, strategic partners, and business inquiries.',
+        cta_label: 'Initiate',
+        cta_h2: 'Build<br>Connection.',
+        cta_p: 'For strategic inquiries, partnerships, and investor relations. We respond with precision and timeliness.',
+        cta_btn: 'Get in Touch',
+        foot_imprint: 'Legal Notice',
+        foot_privacy: 'Privacy Policy'
+      }
+    };
+
+    function setLang(lang) {
+      const t = i18n[lang];
+      document.documentElement.lang = lang;
+      localStorage.setItem('lang', lang);
+      document.getElementById('lang-de').classList.toggle('active', lang === 'de');
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+      // Nav
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) el.textContent = t[key];
+      });
+
+      // Hero
+      document.querySelector('.hero .label').innerHTML = '<span class="accent-line"></span>' + t.hero_label;
+      document.querySelector('.hero p:not(.slogan)').textContent = t.hero_p;
+      document.querySelector('.hero .btn-primary').textContent = t.hero_btn1;
+      document.querySelector('.hero .btn-secondary').textContent = t.hero_btn2;
+
+      // Manifest
+      document.querySelector('#manifest .label').innerHTML = '<span class="accent-line"></span>' + t.manifest_label;
+      document.querySelector('#manifest h2').innerHTML = t.manifest_h2;
+      document.querySelector('#manifest .manifest-text').innerHTML = t.manifest_p;
+
+      // System
+      document.querySelector('#system .label').innerHTML = '<span class="accent-line"></span>' + t.sys_label;
+      document.querySelector('#system h2').innerHTML = t.sys_h2;
+      const cards = document.querySelectorAll('.sys-card');
+      const c1 = cards[0], c2 = cards[1];
+      c1.querySelector('.module-badge').textContent = t.sys1_badge;
+      c1.querySelector('.role').textContent = t.sys1_role;
+      c1.querySelector('h3').textContent = t.sys1_h3;
+      c1.querySelectorAll('li').forEach((li, i) => li.textContent = t['sys1_l'+(i+1)]);
+      c2.querySelector('.module-badge').textContent = t.sys2_badge;
+      c2.querySelector('.role').textContent = t.sys2_role;
+      c2.querySelector('h3').textContent = t.sys2_h3;
+      c2.querySelectorAll('li').forEach((li, i) => li.textContent = t['sys2_l'+(i+1)]);
+
+      // Principles
+      document.querySelector('#principles .label').innerHTML = '<span class="accent-line"></span>' + t.pr_label;
+      document.querySelector('#principles h2').innerHTML = t.pr_h2;
+      const cells = document.querySelectorAll('.principle-cell');
+      cells[0].querySelector('h4').textContent = t.pr1_h4;
+      cells[0].querySelector('p').textContent = t.pr1_p;
+      cells[1].querySelector('h4').textContent = t.pr2_h4;
+      cells[1].querySelector('p').textContent = t.pr2_p;
+      cells[2].querySelector('h4').textContent = t.pr3_h4;
+      cells[2].querySelector('p').textContent = t.pr3_p;
+      cells[3].querySelector('h4').textContent = t.pr4_h4;
+      cells[3].querySelector('p').textContent = t.pr4_p;
+
+      // Vision
+      document.querySelector('#vision .label').innerHTML = '<span class="accent-line"></span>' + t.vis_label;
+      document.querySelector('#vision h2').innerHTML = t.vis_h2;
+      document.querySelector('#vision p').textContent = t.vis_p;
+
+      // Contact
+      document.querySelector('#kontakt .label').innerHTML = '<span class="accent-line"></span>' + t.cta_label;
+      document.querySelector('#kontakt h2').innerHTML = t.cta_h2;
+      document.querySelector('#kontakt > .container > p').textContent = t.cta_p;
+      document.querySelector('#kontakt .btn-primary').textContent = t.cta_btn;
+
+      // Footer
+      const footLinks = document.querySelectorAll('.footer-links a');
+      footLinks[0].textContent = t.foot_imprint;
+      footLinks[1].textContent = t.foot_privacy;
+    }
+
+    // Init language
+    (function() {
+      const saved = localStorage.getItem('lang');
+      const browser = navigator.language.startsWith('de') ? 'de' : 'en';
+      const lang = saved || browser;
+      if (lang !== 'de') setLang(lang);
+    })();
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
