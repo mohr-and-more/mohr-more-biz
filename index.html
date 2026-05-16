@@ -481,35 +481,34 @@
         </div>
 
         <div class="ascii-panel reveal">
-          <pre>
-┌─────────────────────────────────────────────────────────────┐
-│                    SYSTEM INTEGRATION MAP                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│   ┌──────────────┐         ┌──────────────┐               │
-│   │   COMMERCE   │◄───────►│  TECHNOLOGY  │               │
-│   │   MODULE     │  sync   │   MODULE     │               │
-│   │   G. Mohr    │         │   G. Mohr    │               │
-│   └──────┬───────┘         └──────┬───────┘               │
-│          │                        │                        │
-│          │    ┌──────────────┐    │                        │
-│          └───►│  EXECUTION   │◄───┘                        │
-│               │   LAYER      │                             │
-│               │  (TerminTele│                             │
-│               │   fon/nodeSim│                             │
-│               │   trabusco)  │                             │
-│               └──────┬───────┘                             │
-│                      │                                      │
-│               ┌──────▼───────┐                             │
-│               │   OUTPUT     │                             │
-│               │  Commerce ×  │                             │
-│               │  Technology  │                             │
-│               │  = Value     │                             │
-│               └──────────────┘                             │
-│                                                              │
-│   STATUS: <span class="status-ok">ONLINE</span>   SYNC: <span class="status-ok">ACTIVE</span>   LATENCY: <span class="status-ok">0.02ms</span>        │
-└─────────────────────────────────────────────────────────────┘
-          </pre>
+          <pre><code>┌──────────────────────────────────────────────────────────┐
+│                SYSTEM INTEGRATION MAP                    │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─────────────┐                  ┌─────────────┐       │
+│  │  COMMERCE   │◄────────────────►│ TECHNOLOGY  │       │
+│  │  MODULE     │      sync        │ MODULE      │       │
+│  │  Gregor M.  │                  │ Gunnar M.   │       │
+│  └──────┬──────┘                  └──────┬──────┘       │
+│         │                                │              │
+│         │     ┌──────────────┐           │              │
+│         └────►│  EXECUTION   │◄──────────┘              │
+│                │    LAYER     │                          │
+│                │ TerminTelefon│                          │
+│                │ Flowfon      │                          │
+│                │ trabusco     │                          │
+│                │ alles10euro  │                          │
+│                └──────┬───────┘                          │
+│                       │                                  │
+│                ┌──────▼───────┐                          │
+│                │    OUTPUT    │                          │
+│                │ Commerce x   │                          │
+│                │ Technology   │                          │
+│                │ = Value      │                          │
+│                └──────────────┘                          │
+│                                                          │
+│  STATUS: <span class="status-ok">ONLINE</span>    SYNC: <span class="status-ok">ACTIVE</span>    UPTIME: <span class="status-ok">99.9%</span>   │
+└──────────────────────────────────────────────────────────┘</code></pre>
         </div>
       </div>
     </section>
