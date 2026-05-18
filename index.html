@@ -16,6 +16,7 @@
     font-family: 'Inter', sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    padding-top: 64px;
   }
   ::selection { background: rgba(0, 229, 255, 0.2); color: #fff; }
 
@@ -76,18 +77,23 @@
   }
 
   header {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 50;
     background: rgba(3,3,3,0.85);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
+    transition: transform 0.3s ease;
   }
+  header.nav-hidden { transform: translateY(-100%); }
   .header-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     height: 64px;
+    gap: 1rem;
   }
   .logo {
     display: flex;
@@ -133,6 +139,23 @@
     transition: border-color 0.3s, background 0.3s;
   }
   .nav-cta:hover { border-color: var(--text-secondary); background: rgba(255,255,255,0.03); }
+
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    transition: all 0.3s;
+  }
 
   .hero {
     min-height: 90vh;
@@ -201,6 +224,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
     margin-top: 3rem;
+    align-items: stretch;
   }
   .sys-card {
     background: var(--card);
@@ -257,6 +281,9 @@
     padding: 1.5rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
   }
   .ascii-panel pre {
     font-family: var(--font-mono);
@@ -265,6 +292,8 @@
     color: var(--text-secondary);
     white-space: pre;
     min-width: max-content;
+    margin: 0 auto;
+    text-align: center;
   }
   .status-ok { color: var(--accent); }
 
@@ -275,11 +304,14 @@
     background: var(--border);
     border: 1px solid var(--border);
     margin-top: 3rem;
+    align-items: stretch;
   }
   .principle-cell {
     background: var(--bg);
     padding: clamp(1.5rem, 2vw, 2.5rem);
     min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
   .principle-cell .num {
     font-family: var(--font-mono);
@@ -295,7 +327,7 @@
     text-transform: uppercase;
     letter-spacing: -0.01em;
   }
-  .principle-cell p { font-size: 0.9rem; color: #777; max-width: 100%; } .principle-video {
+  .principle-cell p { font-size: 0.9rem; color: #777; max-width: 100%; flex-grow: 1; } .principle-video {
     width: 100%;
     height: 120px;
     object-fit: cover;
@@ -310,9 +342,10 @@
  height: 120px;
  object-fit: cover;
  border-radius: 4px;
- margin-top: 1rem;
+ margin-top: auto;
  opacity: 0.7;
  transition: opacity 0.3s;
+ flex-shrink: 0;
  }
  .principle-cell:hover .principle-video { opacity: 1; }
 
@@ -381,11 +414,30 @@
     .system-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 640px) {
-    nav { gap: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    nav::-webkit-scrollbar { display: none; }
-    nav a { white-space: nowrap; font-size: 0.75rem; }
-    .nav-cta { display: none; }
+    .menu-toggle { display: flex; }
+    nav#main-nav {
+      display: none;
+      position: absolute;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: rgba(3,3,3,0.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      flex-direction: column;
+      padding: 1rem;
+      gap: 0;
+    }
+    nav#main-nav.open { display: flex; }
+    nav#main-nav a {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .nav-cta { display: block; border: none; font-size: 0.9rem; }
+    #lang-toggle { flex-shrink: 0; }
     .principles-grid { grid-template-columns: 1fr; }
+    .ascii-panel { width: 100%; }
     .ascii-panel pre { font-size: 0.5rem; }
   }
 </style>
@@ -403,13 +455,18 @@
         </svg>
         MOHR
       </a>
-      <nav>
-        <a href="#manifest">Position</a>
-        <a href="#system">System</a>
-        <a href="#principles">Prinzipien</a>
-        <a href="#vision">Vision</a>
-        <a href="#kontakt" class="nav-cta">Kontakt</a>
+      <button class="menu-toggle" onclick="toggleMenu()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="main-nav">
+        <a href="#manifest" data-de="Position" data-en="Positioning">Position</a>
+        <a href="#system" data-de="System" data-en="System">System</a>
+        <a href="#principles" data-de="Prinzipien" data-en="Principles">Prinzipien</a>
+        <a href="#vision" data-de="Vision" data-en="Vision">Vision</a>
+        <a href="#kontakt" class="nav-cta" data-de="Kontakt" data-en="Contact">Kontakt</a>
+        <a href="https://app.mohr-more.biz/login" class="nav-cta" style="border-color:var(--accent);color:var(--accent);" data-de="Login" data-en="Login">Login</a>
       </nav>
+      <button id="lang-toggle" onclick="toggleLang()" title="Sprache wechseln" style="background:none;border:1px solid var(--border);color:var(--text-secondary);padding:0.25rem 0.6rem;border-radius:4px;cursor:pointer;font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.05em;transition:all 0.2s;">DE | EN</button>
     </div>
   </header>
 
@@ -417,12 +474,12 @@
     <section class="hero">
       <div class="hero-glow"></div>
       <div class="container">
-        <span class="label"><span class="accent-line"></span>Unternehmerduo // 2026</span>
-        <h1>Commerce.<br>Technology.<br>Execution.</h1>
-        <p>Gregor Mohr und Gunnar Mohr verbinden Handelsrealität mit technologischer Umsetzungskraft. Zwei komplementäre Profile. Ein gemeinsames System für moderne Geschäftsmodelle an der Schnittstelle von Markt und Infrastruktur.</p>
+        <span class="label" data-de="Unternehmerduo // 2026" data-en="Entrepreneurial Duo // 2026"><span class="accent-line"></span>Unternehmerduo // 2026</span>
+        <h1 data-de="Commerce.&lt;br&gt;Technology.&lt;br&gt;Execution." data-en="Commerce.&lt;br&gt;Technology.&lt;br&gt;Execution.">Commerce.<br>Technology.<br>Execution.</h1>
+        <p data-de="Gregor Mohr und Gunnar Mohr verbinden Handelsrealität mit technologischer Umsetzungskraft. Zwei komplementäre Profile. Ein gemeinsames System für moderne Geschäftsmodelle an der Schnittstelle von Markt und Infrastruktur." data-en="Gregor Mohr and Gunnar Mohr combine trade reality with technological execution power. Two complementary profiles. A shared system for modern business models at the intersection of market and infrastructure.">Gregor Mohr und Gunnar Mohr verbinden Handelsrealität mit technologischer Umsetzungskraft. Zwei komplementäre Profile. Ein gemeinsames System für moderne Geschäftsmodelle an der Schnittstelle von Markt und Infrastruktur.</p>
         <div class="cta-group">
-          <a href="#kontakt" class="btn btn-primary">Strategisches Gespräch</a>
-          <a href="#system" class="btn btn-secondary">System erkunden</a>
+          <a href="#kontakt" class="btn btn-primary" data-de="Strategisches Gespräch" data-en="Strategic Conversation">Strategisches Gespräch</a>
+          <a href="#system" class="btn btn-secondary" data-de="System erkunden" data-en="Explore System">System erkunden</a>
         </div>
       </div>
     </section>
@@ -431,8 +488,8 @@
 
     <section id="manifest">
       <div class="container">
-        <span class="label"><span class="accent-line"></span>Positionierung</span>
-        <h2 class="reveal">Praxis trifft<br>Innovation.</h2>
+        <span class="label" data-de="Positionierung" data-en="Positioning"><span class="accent-line"></span>Positionierung</span>
+        <h2 class="reveal" data-de="Praxis trifft&lt;br&gt;Innovation." data-en="Practice meets&lt;br&gt;Innovation.">Praxis trifft<br>Innovation.</h2>
         <p class="manifest-text reveal">
           Wir operieren an der Schnittstelle von <strong>realem Commerce</strong> und <strong>digitaler Infrastruktur</strong>. Gregor Mohr bringt das Handelsverständnis. Gunnar Mohr liefert die technologische Durchschlagskraft. Das Ergebnis ist ein Unternehmerprofil, das Märkte nicht nur analysiert, sondern aktiv gestaltet — mit pragmatischer Erfahrung auf der einen und KI-gestützter Exekution auf der anderen Seite.
         </p>
@@ -443,14 +500,14 @@
 
     <section id="system">
       <div class="container">
-        <span class="label"><span class="accent-line"></span>Systemarchitektur</span>
-        <h2 class="reveal">Zwei Module.<br>Eine Plattform.</h2>
+        <span class="label" data-de="Systemarchitektur" data-en="System Architecture"><span class="accent-line"></span>Systemarchitektur</span>
+        <h2 class="reveal" data-de="Zwei Module.&lt;br&gt;Eine Plattform." data-en="Two Modules.&lt;br&gt;One Platform.">Zwei Module.<br>Eine Plattform.</h2>
 
         <div class="system-grid reveal">
           <article class="sys-card">
             <div class="module-badge">MODULE_01</div>
-            <div class="role">Gregor Mohr // Kaufmännischer Stratege & Geschäftsführer</div>
-            <h3>Handel, Retouren & AI-Voicebot</h3>
+            <div class="role" data-de="Gregor Mohr // Kaufmännischer Stratege &amp; Geschäftsführer" data-en="Gregor Mohr // Commercial Strategist &amp; Managing Director">Gregor Mohr // Kaufmännischer Stratege & Geschäftsführer</div>
+            <h3 data-de="Handel, Retouren &amp; AI-Voicebot" data-en="Trade, Returns &amp; AI Voicebot">Handel, Retouren & AI-Voicebot</h3>
             <ul>
               <li>trabusco — passion for trade (seit 2002, Köln/Riga)</li>
               <li>Internationales B2B-Sourcing: Textilien, Beauty, Elektronik</li>
@@ -465,13 +522,13 @@
 
           <article class="sys-card">
             <div class="module-badge">MODULE_02</div>
-            <div class="role">Gunnar Mohr // Technischer Architekt & Geschäftsführer</div>
-            <h3>KI-Agenten, Full-Stack & Infrastruktur</h3>
+            <div class="role" data-de="Gunnar Mohr // Technischer Architekt &amp; Geschäftsführer" data-en="Gunnar Mohr // Technical Architect &amp; Managing Director">Gunnar Mohr // Technischer Architekt & Geschäftsführer</div>
+            <h3 data-de="KI-Agenten, Full-Stack &amp; Infrastruktur" data-en="AI Agents, Full-Stack &amp; Infrastructure">KI-Agenten, Full-Stack & Infrastruktur</h3>
             <ul>
               <li>Flowfon / TerminTelefon — 24/7 KI-Telefonassistenten</li>
               <li>LazyCode⋮Cologne — Full-Stack Entwicklung & Umsetzung</li>
               <li>FLIXFOTO™ — KI-Produktfotografie für E-Commerce</li>
-              <li>NODᵉSIM Network — Blockchain, IoT, Konsens-Algorithmen</li>
+              <li>NODᵉSIM Network — Web3 Knowhow</li>
               <li>"Trees for the World" Namibia — Entwicklungshelfer</li>
               <li>Automatisierung & KI-Agenten-Netzwerke</li>
               <li>Korrektheit über Cleverness. Verifizieren. Umsetzen.</li>
@@ -481,46 +538,52 @@
         </div>
 
         <div class="ascii-panel reveal">
-          <pre><code> __  __  ___  _   _ ____  ___   __  __  ___  ____  _____
-|  \/  |/ _ \| | | |  _ \( _ ) |  \/  |/ _ \|  _ \| ____|
-| |\/| | | | | |_| | | _)/ _\ |\/| | | | | |_) |  _|
-| |  | | |_| |  _  |  _ &lt;(_&gt;  &lt;| |  | | |_| |  _ &lt;| |___
-|_|  |_|\___/|_| |_|_| \_\___/\/|_|  |_|\___/|_| \_\_____|
-
+          <pre><code>+----------------------------------------------------------+
+|                                                          |
+|       <span style="color:#00e5ff">M O H R   &amp;   M O R E   B U S I N E S S</span>            |
+|                                                          |
 +----------------------------------------------------------+
-|                  SYSTEM INTEGRATION MAP                   |
+|                                                          |
+|                 SYSTEM INTEGRATION MAP                   |
+|                                                          |
 +----------------------------------------------------------+
 |                                                          |
 |  +------------------+          +------------------+      |
-|  |    COMMERCE      |          |   TECHNOLOGY     |      |
-|  |    MODULE        |&lt;-------&gt;|   MODULE         |      |
-|  |                  |  sync    |                  |      |
+|  |                  |          |                  |      |
+|  |    COMMERCE      |  sync    |   TECHNOLOGY     |      |
+|  |    MODULE        |<span style="color:#00e5ff">&lt;--------&gt;</span>|   MODULE         |      |
+|  |                  |          |                  |      |
 |  |  * trabusco      |          |  * TerminTelefon |      |
 |  |  * alles10euro   |          |  * Flowfon       |      |
 |  |  * TENIOS        |          |  * LazyCode      |      |
 |  |  * ZigZag/BuyBay |          |  * FLIXFOTO      |      |
 |  |                  |          |  * NOD^SIM       |      |
 |  |  Gregor Mohr     |          |  Gunnar Mohr     |      |
+|  |                  |          |                  |      |
 |  +--------+---------+          +--------+---------+      |
-|           |                             |                |
-|           |    +-------------------+    |                |
-|           +---&gt;|    EXECUTION      |&lt;---+                |
+|           <span style="color:#00e5ff">|</span>                             <span style="color:#00e5ff">|</span>                |
+|           <span style="color:#00e5ff">|</span>    +-------------------+    <span style="color:#00e5ff">|</span>                |
+|           <span style="color:#00e5ff">+---&gt;</span>|    EXECUTION      |<span style="color:#00e5ff">&lt;---+</span>                |
 |                |      LAYER        |                     |
 |                |                   |                     |
 |                |  * KI-Agenten     |                     |
 |                |  * Automatisierung|                     |
-|                |  * SaaS Plattformen|                    |
+|                |  * SaaS Plattform |                     |
 |                |  * Full-Stack Dev |                     |
+|                |                   |                     |
 |                +--------+----------+                     |
-|                         |                                |
-|                +--------v----------+                     |
+|                         <span style="color:#00e5ff">|</span>                                |
+|                +--------<span style="color:#00e5ff">v</span>----------+                     |
+|                |                   |                     |
 |                |      OUTPUT       |                     |
 |                |                   |                     |
-|                | Commerce x Tech   |                     |
-|                |      = Value      |                     |
+|                |  Commerce x Tech  |                     |
+|                |     = Value       |                     |
+|                |                   |                     |
 |                +-------------------+                     |
 |                                                          |
-|  STATUS: ONLINE    SYNC: ACTIVE    UPTIME: 99.9%        |
+|  STATUS: <span style="color:#00e5ff">ONLINE</span>     SYNC: <span style="color:#00e5ff">ACTIVE</span>     UPTIME: <span style="color:#00e5ff">99.9%</span>       |
+|                                                          |
 +----------------------------------------------------------+</code></pre>
         </div>
       </div>
@@ -530,32 +593,32 @@
 
     <section id="principles">
       <div class="container">
-        <span class="label"><span class="accent-line"></span>Betriebsprinzipien</span>
-        <h2 class="reveal">Was dieses<br>System antreibt.</h2>
+        <span class="label" data-de="Betriebsprinzipien" data-en="Operating Principles"><span class="accent-line"></span>Betriebsprinzipien</span>
+        <h2 class="reveal" data-de="Was dieses&lt;br&gt;System antreibt." data-en="What drives this&lt;br&gt;System.">Was dieses<br>System antreibt.</h2>
 
         <div class="principles-grid reveal">
           <div class="principle-cell">
             <span class="num">01</span>
-            <h4>Pragmatik</h4>
-            <p>Keine Theorie ohne Marktvalidierung. Jede Idee wird anhand realer Handelsstrukturen und technischer Machbarkeit geprüft, bevor sie skaliert.</p>
+            <h4 data-de="Pragmatik" data-en="Pragmatism">Pragmatik</h4>
+            <p data-de="Keine Theorie ohne Marktvalidierung. Jede Idee wird anhand realer Handelsstrukturen und technischer Machbarkeit geprüft, bevor sie skaliert." data-en="No theory without market validation. Every idea is tested against real trade structures and technical feasibility before scaling.">Keine Theorie ohne Marktvalidierung. Jede Idee wird anhand realer Handelsstrukturen und technischer Machbarkeit geprüft, bevor sie skaliert.</p>
 					<video class="principle-video" autoplay loop muted playsinline src="videos/THINK.mp4"></video>
           </div>
           <div class="principle-cell">
             <span class="num">02</span>
-            <h4>Autonomie</h4>
-            <p>Eigene Produkte, eigene Infrastruktur, eigene Konsensmechanismen. Von der Supply Chain bis zum Blockchain-Protokoll.</p>
+            <h4 data-de="Autonomie" data-en="Autonomy">Autonomie</h4>
+            <p data-de="Eigene Produkte, eigene Infrastruktur, eigene Konsensmechanismen. Von der Supply Chain bis zum Blockchain-Protokoll." data-en="Own products, own infrastructure, own consensus mechanisms. From supply chain to blockchain protocol.">Eigene Produkte, eigene Infrastruktur, eigene Konsensmechanismen. Von der Supply Chain bis zum Blockchain-Protokoll.</p>
 					<video class="principle-video" autoplay loop muted playsinline src="videos/SPEED.mp4"></video>
           </div>
           <div class="principle-cell">
             <span class="num">03</span>
-            <h4>Tiefe</h4>
-            <p>Vom Sourcing in der Restposten-Logistik bis zum KI-Modell. Ende-zu-Ende-Kompetenz statt oberflächlicher Integrationen.</p>
+            <h4 data-de="Tiefe" data-en="Depth">Tiefe</h4>
+            <p data-de="Vom Sourcing in der Restposten-Logistik bis zum KI-Modell. Ende-zu-Ende-Kompetenz statt oberflächlicher Integrationen." data-en="From sourcing in off-price logistics to AI models. End-to-end competence over superficial integrations.">Vom Sourcing in der Restposten-Logistik bis zum KI-Modell. Ende-zu-Ende-Kompetenz statt oberflächlicher Integrationen.</p>
 					<video class="principle-video" autoplay loop muted playsinline src="videos/DEEP-TECH.mp4"></video>
           </div>
           <div class="principle-cell">
             <span class="num">04</span>
-            <h4>Skalierung</h4>
-            <p>Modulare Architektur für internationale Geschäftsmodelle. Handelsnetzwerke und digitale Plattformen wachsen gemeinsam.</p>
+            <h4 data-de="Skalierung" data-en="Scaling">Skalierung</h4>
+            <p data-de="Modulare Architektur für internationale Geschäftsmodelle. Handelsnetzwerke und digitale Plattformen wachsen gemeinsam." data-en="Modular architecture for international business models. Trade networks and digital platforms grow together.">Modulare Architektur für internationale Geschäftsmodelle. Handelsnetzwerke und digitale Plattformen wachsen gemeinsam.</p>
 					<video class="principle-video" autoplay loop muted playsinline src="videos/SCALE.mp4"></video>
           </div>
         </div>
@@ -567,8 +630,8 @@
     <section id="vision">
       <div class="container">
         <div class="vision-block reveal">
-          <span class="label"><span class="accent-line"></span>Zukunftssystem</span>
-          <h2>Die nächste Ebene<br>der Wertschöpfung.</h2>
+          <span class="label" data-de="Zukunftssystem" data-en="Future System"><span class="accent-line"></span>Zukunftssystem</span>
+          <h2 data-de="Die nächste Ebene&lt;br&gt;der Wertschöpfung." data-en="The Next Level&lt;br&gt;of Value Creation.">Die nächste Ebene<br>der Wertschöpfung.</h2>
           <p>Wir bauen Unternehmen und Infrastrukturen, die ohne Aufsehen funktionieren. Stille Effizienz. Hinter den Kulissen. Von der Restposten-Distribution bis zur dezentralen Konnektivitätsmonetarisierung. Die Zukunft gehört denen, die Handel und Technologie als eine Einheit begreifen — nicht als getrennte Disziplinen. Dieses Profil ist für Investoren, strategische Partner und Geschäftsanfragen international anschlussfähig positioniert.</p>
         </div>
       </div>
@@ -578,11 +641,11 @@
 
     <section id="kontakt" class="cta-closing">
       <div class="container">
-        <span class="label"><span class="accent-line"></span>Initiieren</span>
-        <h2 class="reveal">Verbindung<br>aufbauen.</h2>
-        <p class="reveal">Für strategische Anfragen, Kooperationen und Investorenkontakte. Wir antworten präzise und zeitnah.</p>
+        <span class="label" data-de="Initiieren" data-en="Initiate"><span class="accent-line"></span>Initiieren</span>
+        <h2 class="reveal" data-de="Verbindung&lt;br&gt;aufbauen." data-en="Build&lt;br&gt;Connection.">Verbindung<br>aufbauen.</h2>
+        <p class="reveal" data-de="Für strategische Anfragen, Kooperationen und Investorenkontakte. Wir antworten präzise und zeitnah." data-en="For strategic inquiries, partnerships and investor relations. We respond precisely and promptly.">Für strategische Anfragen, Kooperationen und Investorenkontakte. Wir antworten präzise und zeitnah.</p>
         <div class="cta-group reveal" style="justify-content:center;">
-          <a href="mailto:info@mohr-more.biz" class="btn btn-primary">Kontakt aufnehmen</a>
+          <a href="mailto:info@mohr-more.biz" class="btn btn-primary" data-de="Kontakt aufnehmen" data-en="Get in Touch">Kontakt aufnehmen</a>
           <a href="https://linkedin.com/in/gregormohr" class="btn btn-secondary" target="_blank" rel="noopener">LinkedIn Gregor</a>
           <a href="https://linkedin.com/in/gunmo" class="btn btn-secondary" target="_blank" rel="noopener">LinkedIn Gunnar</a>
         </div>
@@ -592,15 +655,51 @@
 
   <footer>
     <div class="container footer-inner">
-      <p>© 2026 MOHR & MORE BUSINESS. All systems operational.</p>
+      <p data-de="© 2026 MOHR &amp; MORE BUSINESS. All systems operational." data-en="© 2026 MOHR &amp; MORE BUSINESS. All systems operational.">© 2026 MOHR & MORE BUSINESS. All systems operational.</p>
       <div class="footer-links">
-        <a href="#">Impressum</a>
-        <a href="#">Datenschutz</a>
+        <a href="#" data-de="Impressum" data-en="Legal Notice">Impressum</a>
+        <a href="#" data-de="Datenschutz" data-en="Privacy Policy">Datenschutz</a>
       </div>
     </div>
   </footer>
 
   <script>
+    let currentLang = 'de';
+
+    function toggleLang() {
+      currentLang = currentLang === 'de' ? 'en' : 'de';
+      document.documentElement.lang = currentLang;
+      document.querySelectorAll('[data-de]').forEach(el => {
+        el.innerHTML = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-de');
+      });
+      const btn = document.getElementById('lang-toggle');
+      btn.textContent = currentLang === 'en' ? 'EN | DE' : 'DE | EN';
+    }
+
+    function toggleMenu() {
+      document.getElementById('main-nav').classList.toggle('open');
+    }
+
+    // Close menu on link click
+    document.querySelectorAll('#main-nav a').forEach(a => {
+      a.addEventListener('click', () => {
+        document.getElementById('main-nav').classList.remove('open');
+      });
+    });
+
+    // Smart navbar: hide on scroll down, show on scroll up
+    let lastScroll = 0;
+    const header = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.pageYOffset;
+      if (currentScroll > lastScroll && currentScroll > 80) {
+        header.classList.add('nav-hidden');
+      } else {
+        header.classList.remove('nav-hidden');
+      }
+      lastScroll = currentScroll;
+    });
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
