@@ -1,12 +1,1 @@
-/*  /index.html  404
-
-# Explicit asset routing - do NOT rewrite to index.html
-/videos/*  /videos/:splat  200
-/public/*  /public/:splat  200
-/*.png  /:splat  200
-/*.jpg  /:splat  200
-/*.svg  /:splat  200
-/*.woff2  /:splat  200
-/*.css  /:splat  200
-/*.js  /:splat  200
-/*.mp4  /:splat  200
+/videos/* /videos/:splat 200
