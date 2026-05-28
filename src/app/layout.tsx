@@ -3,16 +3,24 @@ import "./globals.css";
 import { ClientLayout } from "@/components/client-layout";
 
 export const metadata: Metadata = {
-  title: "MOHR — Commerce. Technology. Execution.",
+  title: "MOHR — AI Agent Orchestration",
   description:
-    "Gregor Mohr und Gunnar Mohr verbinden Handelsrealität mit technologischer Umsetzungskraft. Mohr & More Business.",
+    "Ein auf Open Source Agenten-Framework eigens erstelltes KI Unternehmen. MOHR & MORE Business.",
+  keywords: "AI Agenten, Orchestration, Open Source, KI Unternehmen, Automatisierung",
   openGraph: {
-    title: "MOHR & MORE BUSINESS",
-    description: "Commerce. Technology. Execution. — Unternehmerduo aus Köln.",
+    title: "MOHR & MORE | AI Agent Orchestration",
+    description: "Ein auf Open Source Agenten-Framework eigens erstelltes KI Unternehmen",
     locale: "de_DE",
     type: "website",
     url: "https://mohr-more.biz",
+    siteName: "MOHR & MORE",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "MOHR & MORE | AI Agent Orchestration",
+    description: "Ein auf Open Source Agenten-Framework eigens erstelltes KI Unternehmen",
+  },
+  robots: "index, follow",
   icons: { icon: "/favicon.ico" },
 };
 
