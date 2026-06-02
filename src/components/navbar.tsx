@@ -45,6 +45,7 @@ export function Navbar() {
   }, [lastScroll]);
 
   const links = [
+    { href: "/how-to", label: "How-To" },
     { href: "#manifest", label: t.nav.position[lang] },
     { href: "#system", label: t.nav.system[lang] },
     { href: "#principles", label: t.nav.principles[lang] },
