@@ -186,7 +186,7 @@ export function HowToPage() {
               {lang === "de" ? "Gebrauchsanleitung // Paperclip" : "User Guide // Paperclip"}
             </div>
             <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", marginBottom: "1.5rem", lineHeight: 1.1 }}>
-              {lang === "de" ? "Wie man mit<br/>Paperclip arbeitet." : "How to work<br/>with Paperclip."}
+              {lang === "de" ? (<>Wie man mit<br/>Paperclip arbeitet.</>) : (<>How to work<br/>with Paperclip.</>)}
             </h1>
             <p style={{ color: "#aaa", maxWidth: "55ch", fontSize: "clamp(1rem, 1.5vw, 1.25rem)" }}>
               {lang === "de"
