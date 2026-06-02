@@ -46,10 +46,10 @@ export function Navbar() {
 
   const links = [
     { href: "/how-to", label: "How-To" },
-    { href: "#manifest", label: t.nav.position[lang] },
-    { href: "#system", label: t.nav.system[lang] },
-    { href: "#principles", label: t.nav.principles[lang] },
-    { href: "#vision", label: t.nav.vision[lang] },
+    { href: "/#manifest", label: t.nav.position[lang] },
+    { href: "/#system", label: t.nav.system[lang] },
+    { href: "/#principles", label: t.nav.principles[lang] },
+    { href: "/#vision", label: t.nav.vision[lang] },
   ];
 
   return (
@@ -75,7 +75,7 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
-          <a href="#kontakt" className="nav-cta">
+          <a href="/#kontakt" className="nav-cta">
             {t.nav.contact[lang]}
           </a>
           <a href="https://app.mohr-more.biz/login" className="nav-cta" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
@@ -113,7 +113,7 @@ export function Navbar() {
                     {l.label}
                   </a>
                 ))}
-                <a href="#kontakt" onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center">
+                <a href="/#kontakt" onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center">
                   {t.nav.contact[lang]}
                 </a>
                 <a href="https://app.mohr-more.biz/login" onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
