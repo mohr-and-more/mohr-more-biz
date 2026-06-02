@@ -211,6 +211,11 @@ export function HowToPage() {
                   style={{ border: "1px solid var(--border)", textDecoration: "none" }}
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const el = document.getElementById(s.id);
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
                 >
                   <span className="font-mono text-xs pt-0.5" style={{ color: "var(--accent)" }}>{s.num}</span>
                   <span className="text-sm" style={{ color: "var(--text)" }}>{s.title[lang]}</span>
