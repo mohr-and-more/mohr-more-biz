@@ -1,272 +1,289 @@
 /**
- * Shared library for Dashboard API functions.
+ * Shared data-shaping for the mohr-more-biz dashboard Pages Functions.
  *
- * Provides: Paperclip → DashboardIssue mapping, Bearer auth, KV rate-limiting.
- * MMB-174 / MMB-228
+ * Centralizes the Paperclip-API fetch + the plain-language derivation
+ * (4-word subject, what-to-do summary, name resolution) so both the
+ * human-facing endpoint (`/api/issues`) and the machine-facing endpoint
+ * (`/api/dashboard/issues`) return byte-identical shaped records.
  */
 
-// ── Types ──────────────────────────────────────────────
-
-export interface DashboardIssue {
-  id: string;
-  identifier: string;
-  subject: string;            // ≤4-word headline derived from title
-  summary: string;            // "Was ist zu tun" summary from description
-  status: string;
-  priority: string;
-  assigneeName: string | null;
-  assigneeRole: string | null;
-  labels: string[];
-  createdAt: string;
-  updatedAt: string;
-  lastActivityAt: string;
-  url: string;                // deep link to Paperclip issue
+export interface Env {
+  PAPERCLIP_API_BASE?: string;
+  PAPERCLIP_COMPANY_ID?: string;
+  PAPERCLIP_API_TOKEN?: string;
+  /** When set, /api/issues requires a cookie `mmb_dash` matching this value. */
+  DASHBOARD_ACCESS_TOKEN?: string;
+  /** Comma-separated list of service tokens authorised for /api/dashboard/issues. */
+  CHARLIE_API_KEYS?: string;
+  /**
+   * Optional Cloudflare KV namespace bound as `RATE_LIMIT` for the durable,
+   * fleet-wide per-token rate limit on /api/dashboard/issues. When absent the
+   * endpoint degrades to a best-effort per-isolate in-memory limit.
+   */
+  RATE_LIMIT?: KVNamespace;
 }
 
-interface AgentInfo {
-  id: string;
-  name: string;
-  role: string;
-}
+export const DEFAULT_API_BASE = "https://app.mohr-more.biz";
+export const DEFAULT_COMPANY_ID = "b7e413ab-35c1-4034-b474-8aad39901e72";
+export const ISSUE_LIMIT = 500;
+export const UPSTREAM_TIMEOUT_MS = 12_000;
 
-interface PaperclipIssue {
+interface RawIssue {
   id: string;
   identifier: string;
   title: string;
-  description: string | null;
+  description?: string | null;
+  status: string;
+  priority?: string | null;
+  projectId?: string | null;
+  assigneeAgentId?: string | null;
+  assigneeUserId?: string | null;
+  createdByAgentId?: string | null;
+  createdByUserId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  hiddenAt?: string | null;
+}
+interface RawAgent { id: string; name: string; title?: string | null }
+interface RawProject { id: string; name: string }
+interface RawProfile { user?: { id: string; name?: string | null; email?: string | null } }
+
+export interface DashboardIssue {
+  identifier: string;
+  title: string;
+  description: string;
   status: string;
   priority: string;
-  assigneeAgentId: string | null;
-  assigneeUserId: string | null;
-  labels: Array<{ id: string; name: string }>;
+  project: string;
+  requester: string;
+  assignee: string;
+  subject: string;
+  summary: string;
+  paperclipUrl: string;
   createdAt: string;
   updatedAt: string;
-  lastActivityAt: string;
 }
 
-// ── Config ─────────────────────────────────────────────
+export interface DashboardData {
+  issues: DashboardIssue[];
+  projects: string[];
+  requesters: string[];
+  assignees: string[];
+  statuses: string[];
+}
 
-const PAPERCLIP_API_URL = "https://app.mohr-more.biz/api";
-const COMPANY_ID = "b7e413ab-35c1-4034-b474-8aad39901e72";
+const VALID = new Set(["todo", "backlog", "in_progress", "in_review", "done", "cancelled", "blocked"]);
+function normalizeStatus(s: string): string {
+  return VALID.has(s) ? s : "todo";
+}
 
-// ── Helpers ────────────────────────────────────────────
+export function jsonResponse(body: unknown, status: number, private_ = false): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": private_ ? "private, no-store" : "public, max-age=30",
+      Vary: private_ ? "Cookie" : "Origin",
+    },
+  });
+}
 
-/**
- * Extract a ≤4-word headline from an issue title.
- * Strips common prefixes like "INFRA BLOCKER:", "BUG:", etc.
- */
-export function extractFourWordSubject(title: string): string {
-  let clean = title
-    .replace(/^\[?[A-Z][A-Z\s/-]{3,}:\s*/i, "") // strip "PREFIX:" headers
-    .replace(/^\[[A-Z-]+\]\s*/i, "")              // strip [TAG] prefixes
+export function parseCookies(header: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of header.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx === -1) continue;
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (k) out[k] = decodeURIComponent(v);
+  }
+  return out;
+}
+
+function toSubject(title: string): string {
+  const words = title.replace(/[#*`_>]/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ").replace(/[\s.,;:]+$/, "");
+  if (words.length <= 42) return words;
+  return words.slice(0, 42).replace(/\s+\S*$/, "") + "…";
+}
+
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:]+$/, "") + "…";
+}
+
+function toSummary(description: string, title: string): string {
+  const text = (description || "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "• ")
+    .replace(/\s+/g, " ")
     .trim();
-
-  const words = clean.split(/\s+/).filter(Boolean);
-  const subject = words.slice(0, 4).join(" ");
-
-  if (words.length > 4) {
-    return subject + "…";
-  }
-  return subject || clean || title;
+  if (text) return truncate(text, 260);
+  return `„${truncate(title, 80)}" — Details siehe Paperclip.`;
 }
 
-/**
- * Generate a "Was ist zu tun" summary from the issue description.
- * Extracts the first actionable paragraph (skips markdown headers).
- */
-export function extractSummary(description: string | null): string {
-  if (!description) return "Keine Beschreibung vorhanden.";
+function displayUserName(u: { name?: string | null; email?: string | null }): string {
+  const name = (u.name || "").trim();
+  if (name.length >= 3) return name;
+  const local = (u.email || "").split("@")[0].replace(/[._-]+/g, " ").trim();
+  if (local) return local.replace(/\b\w/g, (c) => c.toUpperCase());
+  return name || "Nutzer:in";
+}
 
-  // Remove markdown headers, code blocks, frontmatter
-  const lines = description
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^---[\s\S]*?---/g, "")
-    .split("\n")
-    .filter((line) => {
-      const t = line.trim();
-      return t && !t.startsWith("#") && !t.startsWith("```") && !t.startsWith("|");
-    });
+function distinct(values: string[]): string[] {
+  return [...new Set(values.filter((v) => v && v !== "—"))].sort((a, b) => a.localeCompare(b, "de"));
+}
 
-  // Find first substantive line (≥10 chars)
-  for (const line of lines) {
-    const clean = line.trim().replace(/^[-*]\s*/, "").replace(/^\d+\.\s*/, "");
-    if (clean.length >= 10) {
-      // Truncate at ~200 chars
-      return clean.length > 200 ? clean.slice(0, 197) + "…" : clean;
+/** Fetch the full dashboard dataset from Paperclip and shape it. */
+export async function fetchDashboardData(env: Env): Promise<DashboardData> {
+  const apiBase = (env.PAPERCLIP_API_BASE || DEFAULT_API_BASE).replace(/\/$/, "");
+  const companyId = env.PAPERCLIP_COMPANY_ID || DEFAULT_COMPANY_ID;
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (env.PAPERCLIP_API_TOKEN) headers.Authorization = `Bearer ${env.PAPERCLIP_API_TOKEN}`;
+
+  const timeout = () => {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+    return { signal: controller.signal, clear: () => clearTimeout(t) };
+  };
+  const getJson = async (path: string) => {
+    const { signal, clear } = timeout();
+    try {
+      const res = await fetch(`${apiBase}${path}`, { headers, signal });
+      if (!res.ok) return null;
+      return (await res.json()) as unknown;
+    } catch {
+      return null;
+    } finally {
+      clear();
     }
+  };
+
+  const [issuesRes, projectsRes, agentsRes] = await Promise.all([
+    getJson(`/api/companies/${companyId}/issues?limit=${ISSUE_LIMIT}`),
+    getJson(`/api/companies/${companyId}/projects`),
+    getJson(`/api/companies/${companyId}/agents`),
+  ]);
+
+  const rawIssues = (Array.isArray(issuesRes) ? issuesRes : []) as RawIssue[];
+  const projects = (Array.isArray(projectsRes) ? projectsRes : []) as RawProject[];
+  const agents = (Array.isArray(agentsRes) ? agentsRes : []) as RawAgent[];
+
+  const projectName = new Map<string, string>(projects.map((p) => [p.id, p.name || "—"]));
+  const agentName = new Map<string, string>(agents.map((a) => [a.id, a.name || "Agent"]));
+
+  const userIds = new Set<string>();
+  for (const it of rawIssues) {
+    if (it.createdByUserId) userIds.add(it.createdByUserId);
+    if (it.assigneeUserId) userIds.add(it.assigneeUserId);
   }
+  const userName = new Map<string, string>();
+  await Promise.all(
+    [...userIds].map(async (id) => {
+      const profile = (await getJson(`/api/companies/${companyId}/users/${id}/profile`)) as RawProfile | null;
+      userName.set(id, profile?.user ? displayUserName(profile.user) : "—");
+    }),
+  );
 
-  return lines[0]?.trim().slice(0, 200) || "Keine Details vorhanden.";
-}
+  const resolveAssignee = (it: RawIssue): string => {
+    if (it.assigneeAgentId && agentName.has(it.assigneeAgentId)) return agentName.get(it.assigneeAgentId)!;
+    if (it.assigneeUserId && userName.has(it.assigneeUserId)) return userName.get(it.assigneeUserId)!;
+    return "—";
+  };
+  const resolveRequester = (it: RawIssue): string => {
+    if (it.createdByUserId && userName.has(it.createdByUserId)) return userName.get(it.createdByUserId)!;
+    if (it.createdByAgentId && agentName.has(it.createdByAgentId)) return agentName.get(it.createdByAgentId)!;
+    return "—";
+  };
 
-/**
- * Resolve an agentId to a human-readable name.
- */
-export function resolveAgentName(
-  agentId: string | null,
-  agents: Map<string, AgentInfo>
-): { name: string | null; role: string | null } {
-  if (!agentId) return { name: null, role: null };
-  const agent = agents.get(agentId);
-  if (agent) {
-    return { name: agent.name, role: agent.role };
-  }
-  return { name: agentId.slice(0, 8), role: null };
-}
+  const prefix = rawIssues[0]?.identifier?.split("-")[0] || "MMB";
 
-/**
- * Map a Paperclip issue to the dashboard format.
- */
-export function mapToDashboardIssue(
-  issue: PaperclipIssue,
-  agents: Map<string, AgentInfo>
-): DashboardIssue {
-  const { name, role } = resolveAgentName(issue.assigneeAgentId, agents);
-  const labels = (issue.labels || []).map((l) => l.name || l.id);
+  const issues: DashboardIssue[] = rawIssues
+    .filter((it) => !it.hiddenAt && it.identifier)
+    .map((it) => ({
+      identifier: it.identifier,
+      title: it.title || "Ohne Titel",
+      description: it.description || "",
+      status: normalizeStatus(it.status),
+      priority: it.priority || "medium",
+      project: (it.projectId && projectName.get(it.projectId)) || "—",
+      requester: resolveRequester(it),
+      assignee: resolveAssignee(it),
+      subject: toSubject(it.title || it.identifier),
+      summary: toSummary(it.description || "", it.title || ""),
+      paperclipUrl: `${apiBase}/${prefix}/issues/${it.identifier}`,
+      createdAt: it.createdAt || "",
+      updatedAt: it.updatedAt || "",
+    }));
 
   return {
-    id: issue.id,
-    identifier: issue.identifier,
-    subject: extractFourWordSubject(issue.title),
-    summary: extractSummary(issue.description),
-    status: issue.status,
-    priority: issue.priority,
-    assigneeName: name,
-    assigneeRole: role,
-    labels,
-    createdAt: issue.createdAt,
-    updatedAt: issue.updatedAt,
-    lastActivityAt: issue.lastActivityAt || issue.updatedAt,
-    url: `https://app.mohr-more.biz/issues/${issue.id}`,
+    issues,
+    projects: distinct(issues.map((i) => i.project)),
+    requesters: distinct(issues.map((i) => i.requester)),
+    assignees: distinct(issues.map((i) => i.assignee)),
+    statuses: distinct(issues.map((i) => i.status)),
   };
 }
 
-// ── Auth ───────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Filter parameter parsing — case-insensitive, label-tolerant.
+// Matches the dashboard's status badges ("In Progress" / "in_progress").
+// ---------------------------------------------------------------------------
 
-/**
- * Validate Bearer token against CHARLIE_API_KEYS env var.
- * Supports comma-separated list of valid keys.
- */
-export function authenticate(request: Request, env: Record<string, string>): boolean {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-
-  if (!token) return false;
-
-  const validKeys = (env.CHARLIE_API_KEYS || "").split(",").map((k) => k.trim());
-  return validKeys.includes(token);
-}
-
-// ── Rate Limiting ──────────────────────────────────────
-
-/**
- * KV-based rate limiting (MMB-175).
- * Limit: 60 requests per minute per IP.
- */
-export async function checkRateLimit(
-  request: Request,
-  kv: KVNamespace | undefined
-): Promise<{ allowed: boolean; remaining: number }> {
-  if (!kv) return { allowed: true, remaining: 999 };
-
-  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-  const windowKey = `rl:${ip}:${Math.floor(Date.now() / 60_000)}`;
-  const limit = 60;
-
-  const current = parseInt((await kv.get(windowKey)) || "0", 10);
-
-  if (current >= limit) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  await kv.put(windowKey, String(current + 1), { expirationTtl: 120 });
-
-  return { allowed: true, remaining: limit - current - 1 };
-}
-
-// ── API Client ─────────────────────────────────────────
-
-/**
- * Fetch issues from Paperclip API.
- */
-export async function fetchPaperclipIssues(
-  apiToken: string,
-  filters: { status?: string; priority?: string; assigneeAgentId?: string; limit?: number }
-): Promise<PaperclipIssue[]> {
-  const params = new URLSearchParams();
-  params.set("limit", String(filters.limit || 100));
-  if (filters.status) params.set("status", filters.status);
-  if (filters.priority) params.set("priority", filters.priority);
-  if (filters.assigneeAgentId) params.set("assigneeAgentId", filters.assigneeAgentId);
-
-  const url = `${PAPERCLIP_API_URL}/companies/${COMPANY_ID}/issues?${params}`;
-
-  const resp = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Paperclip API error: ${resp.status} ${resp.statusText}`);
-  }
-
-  const data = await resp.json() as PaperclipIssue[] | { issues: PaperclipIssue[] };
-  const issues = Array.isArray(data) ? data : (data.issues || []);
-  return issues;
-}
-
-/**
- * Fetch all agents for name resolution.
- */
-export async function fetchAgents(apiToken: string): Promise<Map<string, AgentInfo>> {
-  const url = `${PAPERCLIP_API_URL}/companies/${COMPANY_ID}/agents?limit=200`;
-
-  const resp = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!resp.ok) {
-    return new Map();
-  }
-
-  const data = await resp.json() as AgentInfo[] | { agents: AgentInfo[] };
-  const agents = Array.isArray(data) ? data : (data.agents || []);
-
-  const map = new Map<string, AgentInfo>();
-  for (const a of agents) {
-    map.set(a.id, { id: a.id, name: a.name, role: a.role });
-  }
-  return map;
-}
-
-// ── Constants ──────────────────────────────────────────
-
-export const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "https://mohr-more.biz",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type",
-  "Access-Control-Max-Age": "86400",
+const STATUS_LABEL_TO_KEY: Record<string, string> = {
+  todo: "todo",
+  backlog: "backlog",
+  "in progress": "in_progress",
+  inprogress: "in_progress",
+  in_progress: "in_progress",
+  "in review": "in_review",
+  inreview: "in_review",
+  in_review: "in_review",
+  done: "done",
+  cancelled: "cancelled",
+  canceled: "cancelled",
+  blocked: "blocked",
 };
 
-export function jsonError(status: number, message: string, extra: Record<string, unknown> = {}): Response {
-  return new Response(JSON.stringify({ error: message, ...extra }), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+export function normStatusFilter(raw: string | null): string | null {
+  if (!raw) return null;
+  const key = STATUS_LABEL_TO_KEY[raw.trim().toLowerCase().replace(/\s+/g, " ")] ?? null;
+  return key;
 }
 
-export function jsonOk(data: unknown): Response {
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-cache",
-      ...CORS_HEADERS,
-    },
+/** Apply the four optional dashboard filters (project/status/assignee/requester). */
+export function filterDashboard(data: DashboardData, filters: {
+  project?: string | null;
+  status?: string | null; // already normalised key
+  assignee?: string | null;
+  requester?: string | null;
+}): DashboardData {
+  const norm = (s: string | null | undefined): string | null =>
+    s && s.trim() ? s.trim().toLowerCase() : null;
+  const proj = norm(filters.project);
+  const stat = filters.status || null;
+  const ass = norm(filters.assignee);
+  const req = norm(filters.requester);
+
+  const issues = data.issues.filter((i) => {
+    if (proj && i.project.toLowerCase() !== proj) return false;
+    if (stat && i.status !== stat) return false;
+    if (ass && i.assignee.toLowerCase() !== ass) return false;
+    if (req && i.requester.toLowerCase() !== req) return false;
+    return true;
   });
+
+  return {
+    issues,
+    projects: distinct(issues.map((i) => i.project)),
+    requesters: distinct(issues.map((i) => i.requester)),
+    assignees: distinct(issues.map((i) => i.assignee)),
+    statuses: distinct(issues.map((i) => i.status)),
+  };
 }
