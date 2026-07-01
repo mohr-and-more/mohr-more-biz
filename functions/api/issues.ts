@@ -34,8 +34,8 @@ export const onRequestGet = async (context: { env: Env; request: Request }) => {
   let data;
   try {
     data = await fetchDashboardData(env);
-  } catch {
-    return jsonResponse({ error: "upstream unavailable" }, 502, Boolean(gate));
+  } catch (error) {
+    return jsonResponse({ error: "Upstream-Fehler", details: error instanceof Error ? error.message : String(error) }, 502, Boolean(gate));
   }
   return jsonResponse(data, 200, Boolean(gate));
 };

@@ -83,8 +83,8 @@ export const onRequestGet = async (context: { env: Env; request: Request; next: 
   let data;
   try {
     data = await fetchDashboardData(env);
-  } catch {
-    return jsonResponse({ error: "upstream unavailable" }, 502, true);
+  } catch (error) {
+    return jsonResponse({ error: "Upstream-Fehler", details: error instanceof Error ? error.message : String(error) }, 502, true);
   }
   const hasFilters = Boolean(filters.project || filters.status || filters.assignee || filters.requester);
   const result = hasFilters ? filterDashboard(data, filters) : data;

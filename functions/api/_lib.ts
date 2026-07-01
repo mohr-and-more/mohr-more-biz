@@ -152,14 +152,19 @@ export async function fetchDashboardData(env: Env): Promise<DashboardData> {
     const t = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
     return { signal: controller.signal, clear: () => clearTimeout(t) };
   };
+
   const getJson = async (path: string) => {
     const { signal, clear } = timeout();
     try {
       const res = await fetch(`${apiBase}${path}`, { headers, signal });
-      if (!res.ok) return null;
-      return (await res.json()) as unknown;
-    } catch {
-      return null;
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} for ${apiBase}${path}`);
+      }
+      const data = await res.json();
+      return data as unknown;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Paperclip-Downstream fehlgeschlagen: ${apiBase}${path} → ${message}`);
     } finally {
       clear();
     }
@@ -171,9 +176,27 @@ export async function fetchDashboardData(env: Env): Promise<DashboardData> {
     getJson(`/api/companies/${companyId}/agents`),
   ]);
 
-  const rawIssues = (Array.isArray(issuesRes) ? issuesRes : []) as RawIssue[];
-  const projects = (Array.isArray(projectsRes) ? projectsRes : []) as RawProject[];
-  const agents = (Array.isArray(agentsRes) ? agentsRes : []) as RawAgent[];
+  if (!Array.isArray(issuesRes) || issuesRes.length === 0) {
+    throw new Error(
+      `Paperclip-Downstream fehlgeschlagen: ${apiBase}/api/companies/${companyId}/issues?limit=${ISSUE_LIMIT} → Response ist kein Array oder leer: ${JSON.stringify(issuesRes).slice(0, 200)}`
+    );
+  }
+
+  if (!Array.isArray(projectsRes)) {
+    throw new Error(
+      `Paperclip-Downstream fehlgeschlagen: ${apiBase}/api/companies/${companyId}/projects → Response ist kein Array: ${JSON.stringify(projectsRes).slice(0, 200)}`
+    );
+  }
+
+  if (!Array.isArray(agentsRes)) {
+    throw new Error(
+      `Paperclip-Downstream fehlgeschlagen: ${apiBase}/api/companies/${companyId}/agents → Response ist kein Array: ${JSON.stringify(agentsRes).slice(0, 200)}`
+    );
+  }
+
+  const rawIssues = issuesRes as RawIssue[];
+  const projects = projectsRes as RawProject[];
+  const agents = agentsRes as RawAgent[];
 
   const projectName = new Map<string, string>(projects.map((p) => [p.id, p.name || "—"]));
   const agentName = new Map<string, string>(agents.map((a) => [a.id, a.name || "Agent"]));
