@@ -65,9 +65,16 @@ export function Navbar() {
       }}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <a href="#" className="flex items-center gap-3 font-heading text-lg font-bold tracking-wider text-text no-underline" aria-label="MOHR Startseite">
+        <a href="/" className="flex items-center gap-3 no-underline" aria-label="MOHR & MORE Startseite">
           <LogoIcon />
-          MOHR
+          <span className="flex flex-col leading-tight">
+            <strong className="font-heading text-sm font-bold tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+              MOHR &amp; MORE
+            </strong>
+            <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>
+              One Human. One AI. One Company.
+            </span>
+          </span>
         </a>
 
         {/* Desktop nav */}
