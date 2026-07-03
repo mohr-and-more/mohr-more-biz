@@ -22,8 +22,11 @@ jobs:
       - run: npm ci
       - run: npx next build
 
+      - name: Copy Cloudflare Pages Functions to output
+        run: cp -r functions out/functions
+
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=mohr-more
+          command: pages deploy out --project-name=mohr-more
