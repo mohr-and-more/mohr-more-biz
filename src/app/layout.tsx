@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Wir bauen Unternehmen, die wie Software skalieren. MOHR & MORE Business — das erste vollständig autonome KI-Unternehmen. 273 Agenten, 5 Hierarchie-Ebenen, 24/7.",
   keywords:
-    "Zero-Human Company, KI Unternehmen, AI Agents, Automatisierung, Agentic Systems, Mohr & More, Paperclip",
+    "Zero-Human Company, KI Unternehmen, AI Agents, Automatisierung, Agentic Systems, Mohr & More",
   openGraph: {
     title: "MOHR & MORE BUSINESS — Zero-Human Company",
     description: "Wir bauen Unternehmen, die wie Software skalieren. Ein Mensch. Eine KI. Ein Unternehmen.",
