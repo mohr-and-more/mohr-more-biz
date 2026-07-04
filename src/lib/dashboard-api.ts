@@ -87,6 +87,35 @@ export const STATUS_META: Record<DashboardStatus, StatusMeta> = {
   cancelled: { label: "Abgebrochen", color: "#6b7280", bg: "rgba(107,114,128,0.12)", order: -1 },
 };
 
+
+/** Priority visual signal model (per MMB-397 spec). */
+export type PriorityLevel = "urgent" | "high" | "medium" | "low";
+
+export interface PriorityMeta {
+  label: string;
+  /** Foreground colour for the signal dot / text. */
+  color: string;
+  /** 0 = neutral, higher = more attention (for sorting). */
+  order: number;
+}
+
+export const PRIORITY_META: Record<string, PriorityMeta> = {
+  urgent: { label: "Dringend", color: "#ef4444", order: 4 },
+  high: { label: "Hoch", color: "#f59e0b", order: 3 },
+  medium: { label: "Mittel", color: "#8fc6ff", order: 2 },
+  low: { label: "Niedrig", color: "#6b7280", order: 1 },
+};
+
+/** Normalise a raw Paperclip priority string to a known level. */
+export function normalisePriority(raw: string): PriorityLevel {
+  const p = (raw || "").trim().toLowerCase();
+  if (p === "urgent" || p === "critical" || p === "p0") return "urgent";
+  if (p === "high" || p === "p1") return "high";
+  if (p === "low" || p === "p2" || p === "p3") return "low";
+  return "medium";
+}
+
+
 /** Fetch dashboard data from the same-origin Pages Function. */
 export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardData> {
   const res = await fetch("/api/issues", { signal, headers: { Accept: "application/json" } });
