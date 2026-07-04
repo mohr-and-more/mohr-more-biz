@@ -45,7 +45,7 @@ export function IssueCard({ issue }: { issue: DashboardIssue }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          In Paperclip öffnen
+          Aufgabe öffnen
           <span aria-hidden="true"> ↗</span>
         </a>
       </footer>
