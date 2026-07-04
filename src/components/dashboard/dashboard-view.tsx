@@ -73,10 +73,12 @@ export function DashboardView() {
           <span className="accent-line" />
           Dashboard
         </span>
-        <h1>Aufgaben&nbsp;übersicht</h1>
+        <h1>Was läuft gerade?</h1>
         <p className="dash-intro">
-          Alle aktuellen Aufgaben von MOHR &amp; MORE auf einen Blick — Projekt, Zuständige,
-          Status und was noch zu erledigen ist.
+          Sieh in Echtzeit, woran dein Team gerade arbeitet. Zum Beispiel: Daniel hat die
+          Kunden-Dokumentation überarbeitet und wartet auf Freigabe, während Sarah die neue
+          Pipeline einrichtet und fast fertig ist. Hier siehst du jede Aufgabe, wer gerade
+          daran arbeitet und wo es hakt.
         </p>
       </section>
 

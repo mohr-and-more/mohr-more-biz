@@ -86,7 +86,7 @@ export function FilterBar({ options, filters, onChange, resultCount, totalCount 
           onChange={(v) => onChange({ ...filters, assignee: v })}
         />
         <Select
-          label="Status"
+          label="Phase"
           value={filters.status}
           options={orderedStatuses.map((s) => STATUS_META[s].label)}
           valueToKey={(label) => orderedStatuses.find((s) => STATUS_META[s].label === label) ?? ""}

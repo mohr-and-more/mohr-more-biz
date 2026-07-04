@@ -78,13 +78,13 @@ export interface StatusMeta {
 }
 
 export const STATUS_META: Record<DashboardStatus, StatusMeta> = {
-  blocked: { label: "Blocked", color: "#ef4444", bg: "rgba(239,68,68,0.12)", order: 5 },
-  in_progress: { label: "In Progress", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", order: 4 },
-  in_review: { label: "In Review", color: "#bd93f9", bg: "rgba(189,147,249,0.14)", order: 3 },
-  todo: { label: "Todo", color: "#e5e5e5", bg: "rgba(229,229,229,0.08)", order: 2 },
-  backlog: { label: "Backlog", color: "#9ca3af", bg: "rgba(156,163,175,0.10)", order: 1 },
-  done: { label: "Done", color: "#22c55e", bg: "rgba(34,197,94,0.12)", order: 0 },
-  cancelled: { label: "Cancelled", color: "#6b7280", bg: "rgba(107,114,128,0.12)", order: -1 },
+  blocked: { label: "Blockiert", color: "#ef4444", bg: "rgba(239,68,68,0.12)", order: 5 },
+  in_progress: { label: "In Arbeit", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", order: 4 },
+  in_review: { label: "Wartet auf Prüfung", color: "#bd93f9", bg: "rgba(189,147,249,0.14)", order: 3 },
+  todo: { label: "Offen", color: "#e5e5e5", bg: "rgba(229,229,229,0.08)", order: 2 },
+  backlog: { label: "Zurückgestellt", color: "#9ca3af", bg: "rgba(156,163,175,0.10)", order: 1 },
+  done: { label: "Erledigt", color: "#22c55e", bg: "rgba(34,197,94,0.12)", order: 0 },
+  cancelled: { label: "Abgebrochen", color: "#6b7280", bg: "rgba(107,114,128,0.12)", order: -1 },
 };
 
 /** Fetch dashboard data from the same-origin Pages Function. */
