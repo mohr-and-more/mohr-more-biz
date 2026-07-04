@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "bake:quota": "node scripts/bake-quota.mjs",
+    "deploy:quota": "node scripts/bake-quota.mjs && git add functions/api/_quota-data.json && git commit -m \"chore: bake latest quota snapshot\" && git push"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
