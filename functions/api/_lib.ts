@@ -114,17 +114,79 @@ function truncate(s: string, max: number): string {
 }
 
 function toSummary(description: string, title: string): string {
-  const text = (description || "")
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^\s*[-*+]\s+/gm, "• ")
+  // ── Action-oriented summary extraction ──────────────────────────────
+  // Goal: surface the first actionable / next-step sentence so the
+  // dashboard reader can immediately see WHAT to do, not just a wall of
+  // context.  Priority order:
+  //   1. Explicit action sentence (imperative / contains action verb)
+  //   2. First non-trivial paragraph sentence
+  //   3. Raw cleaned text
+  //   4. Fallback: title-based boilerplate
+
+  const clean = (description || "")
+    .replace(/```[\s\S]*?```/g, " ")           // strip code blocks
+    .replace(/`([^`]+)`/g, "$1")               // inline code → text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")      // strip images
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")   // links → label
+    .replace(/^#{1,6}\s+/gm, "")                // headings → plain
+    .replace(/^\s{0,3}([-*+]|\d+[.)])\s+/gm, "") // strip list markers (keep text)
     .replace(/\s+/g, " ")
     .trim();
-  if (text) return truncate(text, 260);
-  return `„${truncate(title, 80)}" — Details siehe Paperclip.`;
+
+  if (!clean) {
+    return `„${truncate(title, 80)}" — Details siehe Paperclip.`;
+  }
+
+  // Split into sentences on . ! ? followed by space/capital, preserving short
+  const sentences = clean
+    .split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ„"\d])/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 12);             // drop fragments
+
+  // ── 1. Action-verb heuristic ──
+  // German + English imperative / task verbs that signal a next step.
+  const ACTION_VERBS = [
+    // German
+    "prüfe", "pruefe", "erstelle", "implementiere", "fixe", "behebe",
+    "aktualisiere", "ergänze", "ergaenze", "teste", "deploye", "deploy",
+    "migriere", "konfiguriere", "entferne", "füge", "fuege", "hinzu",
+    "ändere", "aendere", "optimiere", "analysiere", "untersuche",
+    "dokumentiere", "verbinde", "setup", "installiere", "starte",
+    "stoppe", "deaktiviere", "aktiviere", "schreibe", "sende",
+    "muss", "soll", "wartet auf", "benötigt", "benoetigt",
+    "aufgabe", "todo", "next step", "nächster schritt",
+    // English
+    "implement", "create", "build", "fix", "update", "add", "remove",
+    "deploy", "configure", "test", "migrate", "refactor", "setup",
+    "install", "check", "review", "write", "send",
+    "must", "should", "needs", "requires", "waiting for",
+    "task", "todo", "action item",
+  ];
+  const isActionSentence = (s: string): boolean => {
+    const low = s.toLowerCase();
+    return ACTION_VERBS.some((v) => low.startsWith(v) || low.includes(" " + v + " ") || low.includes(" " + v + ":"));
+  };
+
+  // Find first action sentence
+  const actionMatch = sentences.find(isActionSentence);
+  if (actionMatch) {
+    return truncate(actionMatch, 260);
+  }
+
+  // ── 2. Among first 5 sentences, pick the most concise meaningful one ──
+  const candidates = sentences.slice(0, 5);
+  if (candidates.length > 0) {
+    const first = candidates[0];
+    if (first.length <= 200) {
+      return truncate(first, 260);
+    }
+    // Otherwise pick the shortest candidate
+    const shortest = candidates.reduce((a, b) => (a.length <= b.length ? a : b));
+    return truncate(shortest, 260);
+  }
+
+  // ── 3. Raw cleaned text if no sentence boundaries found ──
+  return truncate(clean, 260);
 }
 
 function displayUserName(u: { name?: string | null; email?: string | null }): string {
