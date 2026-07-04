@@ -76,7 +76,8 @@ export function DashboardView() {
         <h1>MOHR &amp; MORE Board</h1>
         <p className="dash-intro">
           Gunnar und Gregor müssen sich entscheiden und die Quoten und Preise für den
-          jeweiligen Kunden wandeln. Hier seht ihr alle offenen Aufgaben auf einen Blick.
+          jeweiligen Kunden wandeln. Zum Beispiel wartet ein Kunde seit heute Morgen auf
+          sein finales Angebot — jetzt ist Entscheidung gefragt.
         </p>
       </section>
 
