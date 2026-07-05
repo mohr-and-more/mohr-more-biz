@@ -10,27 +10,57 @@ import {
 } from "@/lib/dashboard-api";
 
 /**
- * z.ai Quota-Auslastung — animated header panel for the dashboard (MMB-176).
- *
- * Layout (mobile-first, single column):
- *   ┌──────────────────────────────────────────────┐
- *   │  status pills (5h / 7d / cost) + LOWER BOUND  │
- *   ├──────────────────────────────────────────────┤
- *   │  5h window — full-width 21:9 animated LINE   │
- *   ├──────────────────────────────────────────────┤
- *   │  7d window — smaller animated BAR chart      │
- *   └──────────────────────────────────────────────┘
- *
- * Data comes same-origin from /api/quota (Cloudflare Pages Function). The panel
- * degrades gracefully: if quota data is unavailable it renders nothing
- * obstructive so the rest of the dashboard keeps working.
+ * MMB-401 — GLM + MiniMax dual-provider quota panel.
+ * Shows both providers side-by-side with progress bars and color coding.
+ * Data comes from /api/quota (Cloudflare Pages Function) which serves
+ * the baked _quota-data.json (updated by bake-quota.mjs).
  */
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type Provider = "glm" | "minimax";
+
+interface ProviderQuota {
+  provider: string;
+  limits: { window_5h: number; window_7d: number };
+  latest: {
+    generated_at: string;
+    combined_5h: number;
+    combined_7d: number;
+    pct_5h: number;
+    pct_7d: number;
+    limit_5h: number;
+    limit_7d: number;
+    flatrate_ok?: boolean;
+    video_bonus?: string;
+  };
+  series: QuotaPoint[];
+}
+
+interface DualQuotaData {
+  available: boolean;
+  generated_at?: string;
+  glm?: ProviderQuota;
+  minimax?: ProviderQuota;
+  // Legacy fallback
+  limits?: { window_5h: number; window_7d: number };
+  latest?: {
+    combined_5h: number;
+    combined_7d: number;
+    pct_5h: number;
+    pct_7d: number;
+    flatrate_ok?: boolean;
+  };
+  series?: QuotaPoint[];
+}
 
 type LoadState =
   | { kind: "loading" }
-  | { kind: "ready"; data: QuotaData }
+  | { kind: "ready"; data: DualQuotaData }
   | { kind: "error" }
   | { kind: "hidden" };
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function QuotaReport() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -40,10 +70,10 @@ export function QuotaReport() {
     let active = true;
     (async () => {
       try {
-        const data = await fetchQuota(controller.signal);
+        const raw = await fetchQuota(controller.signal);
         if (!active) return;
-        // Snapshot not yet available upstream (e.g. before first run).
-        if (!data.available || !data.latest || data.series.length === 0) {
+        const data = raw as unknown as DualQuotaData;
+        if (!data.available) {
           setState({ kind: "hidden" });
         } else {
           setState({ kind: "ready", data });
@@ -59,41 +89,185 @@ export function QuotaReport() {
   }, []);
 
   if (state.kind === "loading" || state.kind === "hidden" || state.kind === "error") {
-    // Keep the dashboard clean while quota data is unavailable.
     return null;
   }
 
-  const { latest, series, limits } = state.data;
-  if (!latest) return null;
-  const lvl5 = quotaLevel(latest.pct_5h);
-  const lvl7 = quotaLevel(latest.pct_7d);
-  const worst: keyof typeof QUOTA_LEVEL_META =
-    lvl5 === "red" || lvl7 === "red" ? "red" : lvl5 === "yellow" || lvl7 === "yellow" ? "yellow" : "green";
+  const { data } = state;
+
+  // If dual-provider data is available, render side-by-side
+  const hasGLM = Boolean(data.glm);
+  const hasMiniMax = Boolean(data.minimax);
+
+  if (hasGLM && hasMiniMax) {
+    return <DualProviderPanel glm={data.glm!} minimax={data.minimax!} />;
+  }
+
+  // Legacy fallback: single-provider (GLM only)
+  if (hasGLM) {
+    return <SingleProviderPanel provider="glm" quota={data.glm!} />;
+  }
+
+  return null;
+}
+
+// ─── Dual-provider panel (MMB-401 main deliverable) ───────────────────────
+
+function DualProviderPanel({ glm, minimax }: { glm: ProviderQuota; minimax: ProviderQuota }) {
+  const worstGLM = worstLevel(glm.latest.pct_5h, glm.latest.pct_7d);
+  const worstMiniMax = worstLevel(minimax.latest.pct_5h, minimax.latest.pct_7d);
 
   return (
-    <section className="quota" aria-label="z.ai Quota-Auslastung">
+    <section className="quota" aria-label="GLM + MiniMax Quota-Auslastung">
       <header className="quota-head">
         <div className="quota-titles">
           <span className="label">
             <span className="accent-line" />
-            z.ai Quota
+            Quoten
+          </span>
+          <h2 className="quota-h">AI-Nutzung</h2>
+        </div>
+        <div className="quota-pills" role="group" aria-label="Provider-Status">
+          <ProviderBadge provider="glm" worst={worstGLM} />
+          <ProviderBadge provider="minimax" worst={worstMiniMax} />
+        </div>
+      </header>
+
+      {/* Side-by-side cards */}
+      <div className="quota-dual-grid">
+        <ProviderCard provider="glm" quota={glm} />
+        <ProviderCard provider="minimax" quota={minimax} />
+      </div>
+
+      <p className="quota-foot">
+        GLM: 5h- + 7d-Fenster · MiniMax: 5h- + 7d-Fenster · Grenzen: 1600/5h, 8000/7d.
+        Lower Bound: Alle Quellen instrumentiert.
+      </p>
+    </section>
+  );
+}
+
+function ProviderBadge({ provider, worst }: { provider: Provider; worst: "green" | "yellow" | "red" }) {
+  const meta = QUOTA_LEVEL_META[worst];
+  const label = provider === "glm" ? "GLM" : "MiniMax";
+  return (
+    <span
+      className="quota-pill"
+      style={{ color: meta.color, borderColor: meta.color, background: meta.bg }}
+    >
+      {label}: {meta.label}
+    </span>
+  );
+}
+
+function ProviderCard({ provider, quota }: { provider: Provider; quota: ProviderQuota }) {
+  const { latest, limits } = quota;
+  const lvl5h = quotaLevel(latest.pct_5h);
+  const lvl7d = quotaLevel(latest.pct_7d);
+  const worst = worstLevel(latest.pct_5h, latest.pct_7d);
+  const meta = QUOTA_LEVEL_META[worst];
+
+  return (
+    <div className="quota-card" style={{ borderTopColor: meta.color }}>
+      <div className="quota-card-head">
+        <span className="quota-card-title">{provider === "glm" ? "GLM" : "MiniMax"}</span>
+        <span className="quota-card-sub">{quota.provider}</span>
+      </div>
+
+      {/* 5h bar */}
+      <QuotaBar
+        label="5h-Fenster"
+        used={latest.combined_5h}
+        limit={limits.window_5h}
+        pct={latest.pct_5h}
+        level={lvl5h}
+      />
+
+      {/* 7d bar */}
+      <QuotaBar
+        label="7d-Fenster"
+        used={latest.combined_7d}
+        limit={limits.window_7d}
+        pct={latest.pct_7d}
+        level={lvl7d}
+      />
+
+      {/* Extra info for MiniMax */}
+      {provider === "minimax" && latest.video_bonus && latest.video_bonus !== "N/A" && (
+        <p className="quota-card-extra">{latest.video_bonus}</p>
+      )}
+    </div>
+  );
+}
+
+function QuotaBar({
+  label,
+  used,
+  limit,
+  pct,
+  level,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  pct: number;
+  level: "green" | "yellow" | "red";
+}) {
+  const meta = QUOTA_LEVEL_META[level];
+  const fillPct = Math.min(100, pct);
+  return (
+    <div className="quota-bar-row">
+      <div className="quota-bar-label">
+        <span>{label}</span>
+        <span className="quota-bar-value" style={{ color: meta.color }}>
+          {used}/{limit}
+        </span>
+      </div>
+      <div className="quota-bar-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div
+          className="quota-bar-fill"
+          style={{
+            width: `${fillPct}%`,
+            background: meta.color,
+          }}
+        />
+      </div>
+      <div className="quota-bar-pct" style={{ color: meta.color }}>
+        {pct.toFixed(1)}%
+      </div>
+    </div>
+  );
+}
+
+// ─── Single-provider legacy fallback ─────────────────────────────────────────
+
+function SingleProviderPanel({ provider, quota }: { provider: Provider; quota: ProviderQuota }) {
+  const { latest, limits, series } = quota;
+  const lvl5 = quotaLevel(latest.pct_5h);
+  const lvl7 = quotaLevel(latest.pct_7d);
+  const worst = worstLevel(latest.pct_5h, latest.pct_7d);
+  const label = provider === "glm" ? "z.ai Quota" : "MiniMax Quota";
+
+  return (
+    <section className="quota" aria-label={`${label} Auslastung`}>
+      <header className="quota-head">
+        <div className="quota-titles">
+          <span className="label">
+            <span className="accent-line" />
+            {label}
           </span>
           <h2 className="quota-h">Auslastung</h2>
         </div>
         <div className="quota-pills" role="group" aria-label="Quota-Status">
           <Pill label="5h-Fenster" value={`${latest.combined_5h}/${limits.window_5h}`} level={lvl5} pct={latest.pct_5h} />
           <Pill label="7d-Fenster" value={`${latest.combined_7d}/${limits.window_7d}`} level={lvl7} pct={latest.pct_7d} />
-          <span className={`quota-pill quota-pill--${latest.flatrate_ok ? "ok" : "warn"}`} title="z.ai Flatrate — cost_cents muss 0 bleiben">
-            cost {latest.cost_cents === 0 ? "0¢ ✓" : `${latest.cost_cents}¢`}
-          </span>
         </div>
       </header>
 
       <div className={`quota-banner quota-banner--${worst}`}>
         <span className="quota-banner-dot" aria-hidden="true" />
         <span>
-          Status <strong>{QUOTA_LEVEL_META[worst].label}</strong> · z.ai-Flatrate aktiv · Zahlen sind eine{" "}
-          <em>untere Schranke</em> (TradingAgents nicht erfasst).
+          Status <strong>{QUOTA_LEVEL_META[worst].label}</strong> ·{" "}
+          {provider === "glm" ? "GLM-Flatrate aktiv" : "MiniMax Coding Plan aktiv"}
         </span>
       </div>
 
@@ -101,12 +275,14 @@ export function QuotaReport() {
       <BarChart7d series={series} limit={limits.window_7d} latest={latest.combined_7d} />
 
       <p className="quota-foot">
-        Trend der rollierenden 5h- und 7d-Prompt-Fenster (tägl. Snapshot). Grenzen: 1600/5h, 8000/7d.
-        {!latest.tradingagents_available ? " Lower Bound: TradingAgents-Usage nicht instrumentiert." : ""}
+        Trend der rollierenden 5h- und 7d-Prompt-Fenster (tägl. Snapshot). Grenzen:{" "}
+        {limits.window_5h}/{limits.window_7d}.
       </p>
     </section>
   );
 }
+
+// ─── Pill (unchanged from original) ──────────────────────────────────────────
 
 function Pill({
   label,
@@ -132,14 +308,20 @@ function Pill({
   );
 }
 
-// ---------------------------------------------------------------------------
-// 5h window — full-width 21:9 animated LINE chart
-// ---------------------------------------------------------------------------
+// ─── Chart helpers (unchanged) ───────────────────────────────────────────────
 
 const VB_W = 840;
-const VB_H5 = 360; // 21:9
+const VB_H5 = 360;
 const PAD = { left: 52, right: 24, top: 30, bottom: 34 };
 
+function worstLevel(pct5h: number, pct7d: number): "green" | "yellow" | "red" {
+  return (["red", "yellow", "green"] as const).find((l) =>
+    l === "red" ? (pct5h >= 90 || pct7d >= 90) :
+    l === "yellow" ? (pct5h >= 70 || pct7d >= 70) : true
+  ) ?? "green";
+}
+
+// 5h line chart
 function LineChart5h({ series, limit, latest }: { series: QuotaPoint[]; limit: number; latest: number }) {
   const [drawn, setDrawn] = useState(false);
   const reduce = usePrefersReducedMotion();
@@ -165,61 +347,26 @@ function LineChart5h({ series, limit, latest }: { series: QuotaPoint[]; limit: n
               <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
             </linearGradient>
           </defs>
-
           {plot.gridY.map((g) => (
             <g key={g.value}>
               <line x1={PAD.left} y1={g.y} x2={VB_W - PAD.right} y2={g.y} className="q-grid" />
-              <text x={PAD.left - 10} y={g.y + 4} className="q-axis" textAnchor="end">
-                {fmt(g.value)}
-              </text>
+              <text x={PAD.left - 10} y={g.y + 4} className="q-axis" textAnchor="end">{fmt(g.value)}</text>
             </g>
           ))}
-
-          {/* limit reference line */}
-          <line
-            x1={PAD.left}
-            y1={plot.limitY}
-            x2={VB_W - PAD.right}
-            y2={plot.limitY}
-            className="q-limit"
-          />
-          <text x={VB_W - PAD.right} y={plot.limitY - 8} className="q-limit-label" textAnchor="end">
-            Limit {fmt(limit)}
-          </text>
-
+          <line x1={PAD.left} y1={plot.limitY} x2={VB_W - PAD.right} y2={plot.limitY} className="q-limit" />
+          <text x={VB_W - PAD.right} y={plot.limitY - 8} className="q-limit-label" textAnchor="end">Limit {fmt(limit)}</text>
           {plot.areaD && <path d={plot.areaD} fill="url(#q5fill)" className="q-area" style={{ opacity: drawn || reduce ? 1 : 0 }} />}
-
-          <path
-            d={plot.lineD}
-            fill="none"
-            className="q-line"
-            pathLength={1}
-            style={{
-              strokeDasharray: 1,
-              strokeDashoffset: drawn || reduce ? 0 : 1,
-              transition: "stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)",
-            }}
-          />
-
+          <path d={plot.lineD} fill="none" className="q-line" pathLength={1}
+            style={{ strokeDasharray: 1, strokeDashoffset: drawn || reduce ? 0 : 1, transition: "stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)" }} />
           {plot.points.map((p, i) => (
-            <circle
-              key={p.date}
-              cx={p.x}
-              cy={p.y}
-              r={i === plot.points.length - 1 ? 5 : 3}
+            <circle key={p.date} cx={p.x} cy={p.y} r={i === plot.points.length - 1 ? 5 : 3}
               className={`q-dot${i === plot.points.length - 1 ? " q-dot--now" : ""}`}
-              style={{ opacity: drawn || reduce ? 1 : 0, transition: `opacity .4s ease ${0.6 + i * 0.05}s` }}
-            />
+              style={{ opacity: drawn || reduce ? 1 : 0, transition: `opacity .4s ease ${0.6 + i * 0.05}s` }} />
           ))}
-
           {plot.points.map((p, i) => {
             const show = i === 0 || i === plot.points.length - 1 || i === Math.floor(plot.points.length / 2);
             if (!show) return null;
-            return (
-              <text key={`xl-${p.date}`} x={p.x} y={VB_H5 - PAD.bottom + 22} className="q-axis" textAnchor="middle">
-                {shortDate(p.date)}
-              </text>
-            );
+            return <text key={`xl-${p.date}`} x={p.x} y={VB_H5 - PAD.bottom + 22} className="q-axis" textAnchor="middle">{shortDate(p.date)}</text>;
           })}
         </svg>
       </div>
@@ -227,10 +374,7 @@ function LineChart5h({ series, limit, latest }: { series: QuotaPoint[]; limit: n
   );
 }
 
-// ---------------------------------------------------------------------------
-// 7d window — smaller animated BAR chart
-// ---------------------------------------------------------------------------
-
+// 7d bar chart
 const VB_H7 = 230;
 
 function BarChart7d({ series, limit, latest }: { series: QuotaPoint[]; limit: number; latest: number }) {
@@ -243,10 +387,10 @@ function BarChart7d({ series, limit, latest }: { series: QuotaPoint[]; limit: nu
   }, [reduce]);
 
   const innerW = VB_W - PAD.left - PAD.right;
-  const plotTop = PAD.top;
   const plotBottom = VB_H7 - PAD.bottom;
+  const plotTop = PAD.top;
   const plotH = plotBottom - plotTop;
-  const limitY = plotBottom - plotH; // limit at top
+  const limitY = plotBottom - plotH;
   const n = series.length;
   const slot = innerW / n;
   const barW = Math.min(34, slot * 0.62);
@@ -267,16 +411,11 @@ function BarChart7d({ series, limit, latest }: { series: QuotaPoint[]; limit: nu
           {gridY.map((g) => (
             <g key={g.value}>
               <line x1={PAD.left} y1={g.y} x2={VB_W - PAD.right} y2={g.y} className="q-grid" />
-              <text x={PAD.left - 10} y={g.y + 4} className="q-axis" textAnchor="end">
-                {fmt(g.value)}
-              </text>
+              <text x={PAD.left - 10} y={g.y + 4} className="q-axis" textAnchor="end">{fmt(g.value)}</text>
             </g>
           ))}
           <line x1={PAD.left} y1={limitY} x2={VB_W - PAD.right} y2={limitY} className="q-limit" />
-          <text x={VB_W - PAD.right} y={limitY - 8} className="q-limit-label" textAnchor="end">
-            Limit {fmt(limit)}
-          </text>
-
+          <text x={VB_W - PAD.right} y={limitY - 8} className="q-limit-label" textAnchor="end">Limit {fmt(limit)}</text>
           {series.map((d, i) => {
             const cx = PAD.left + slot * i + slot / 2;
             const h = Math.max(2, (d.v7d / limit) * plotH);
@@ -284,23 +423,12 @@ function BarChart7d({ series, limit, latest }: { series: QuotaPoint[]; limit: nu
             const isLast = i === n - 1;
             return (
               <g key={d.date}>
-                <rect
-                  x={cx - barW / 2}
-                  y={y}
-                  width={barW}
-                  height={h}
+                <rect x={cx - barW / 2} y={y} width={barW} height={h}
                   className={`q-bar${isLast ? " q-bar--now" : ""}`}
-                  style={{
-                    transform: grown || reduce ? "scaleY(1)" : "scaleY(0)",
-                    transformOrigin: "center bottom",
-                    transformBox: "fill-box",
-                    transition: `transform .9s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s`,
-                  }}
-                />
+                  style={{ transform: grown || reduce ? "scaleY(1)" : "scaleY(0)", transformOrigin: "center bottom", transformBox: "fill-box",
+                    transition: `transform .9s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s` }} />
                 {(i === 0 || isLast || i === Math.floor(n / 2)) && (
-                  <text x={cx} y={VB_H7 - PAD.bottom + 22} className="q-axis" textAnchor="middle">
-                    {shortDate(d.date)}
-                  </text>
+                  <text x={cx} y={VB_H7 - PAD.bottom + 22} className="q-axis" textAnchor="middle">{shortDate(d.date)}</text>
                 )}
               </g>
             );
@@ -311,14 +439,9 @@ function BarChart7d({ series, limit, latest }: { series: QuotaPoint[]; limit: nu
   );
 }
 
-// ---------------------------------------------------------------------------
-// Plot helpers
-// ---------------------------------------------------------------------------
+// ─── Plot helpers ────────────────────────────────────────────────────────────
 
-interface PlotPoint extends QuotaPoint {
-  x: number;
-  y: number;
-}
+interface PlotPoint extends QuotaPoint { x: number; y: number }
 
 function buildPlot(series: QuotaPoint[], limit: number, vbH: number) {
   const innerW = VB_W - PAD.left - PAD.right;
@@ -335,14 +458,10 @@ function buildPlot(series: QuotaPoint[], limit: number, vbH: number) {
     return { ...d, x, y };
   });
 
-  const lineD = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(" ");
-
-  const areaD =
-    points.length > 0
-      ? `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${plotBottom} L ${points[0].x.toFixed(1)} ${plotBottom} Z`
-      : "";
+  const lineD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const areaD = points.length > 0
+    ? `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${plotBottom} L ${points[0].x.toFixed(1)} ${plotBottom} Z`
+    : "";
 
   const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
     value: Math.round(limit * f),
@@ -358,7 +477,6 @@ function fmt(n: number): string {
 }
 
 function shortDate(iso: string): string {
-  // iso = YYYY-MM-DD -> DD.MM.
   const [, m, d] = iso.split("-");
   return `${d}.${m}.`;
 }

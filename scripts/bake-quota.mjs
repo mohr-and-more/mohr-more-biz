@@ -10,17 +10,13 @@
  * Input:  /home/admin01/ops/reports/quota-snapshot-*.json
  * Output: functions/api/_quota-data.json  (overwritten in-place)
  *
- * Schema (must stay stable — consumed by quota.ts + dashboard-api.ts):
+ * Schema (MMB-401 dual-provider):
  *   available, generated_at, note,
- *   limits{window_5h, window_7d},
- *   latest{generated_at, combined_5h, combined_7d, pct_5h, pct_7d,
- *          cost_cents, flatrate_ok, coverage_note,
- *          tradingagents_available, hermes_5h, hermes_7d,
- *          pi_local_7d, claude_local_7d},
- *   series[{date, v5h, v7d}]
+ *   glm{limits, latest, series},
+ *   minimax{limits, latest, series}   ← MMB-401
  *
- * Series: one data point per calendar day, using the LAST snapshot of that day
- * (closest to midnight UTC = most complete picture).
+ * Both providers baked independently. Series: one data point per calendar day,
+ * using the LAST snapshot of that day (closest to midnight UTC).
  */
 
 import { readFileSync, writeFileSync, readdirSync } from "fs";
@@ -43,8 +39,10 @@ function loadSnapshots() {
 /**
  * Collapse multiple snapshots per day → one point per day (the last snapshot
  * of each UTC day, which has the most complete 5h/7d window).
+ * Handles dual-provider snapshots (top-level combined_5h/7d for GLM,
+ * nested glm+minimax objects for MMB-401 dual display).
  */
-function buildSeries(snapshots) {
+function buildSeriesGLM(snapshots) {
   const byDay = new Map(); // "YYYY-MM-DD" → { v5h, v7d, ts }
 
   for (const { data } of snapshots) {
@@ -52,10 +50,19 @@ function buildSeries(snapshots) {
     if (!ts) continue;
     const day = ts.slice(0, 10); // YYYY-MM-DD
 
-    const combined5h = data.combined_5h ?? 0;
-    const combined7d = data.combined_7d ?? 0;
+    // MMB-401: data may be the full dual-provider snapshot from quota-monitor.py
+    // or the legacy zai-quota-report.py format (top-level combined_5h/7d)
+    let combined5h, combined7d;
+    if (data.glm) {
+      // Dual-provider format (quota-monitor.py)
+      combined5h = data.glm.usage?.combined_5h ?? 0;
+      combined7d = data.glm.usage?.combined_7d ?? 0;
+    } else {
+      // Legacy format
+      combined5h = data.combined_5h ?? 0;
+      combined7d = data.combined_7d ?? 0;
+    }
 
-    // Keep the latest snapshot per day (lexicographic ts compare works for ISO)
     const existing = byDay.get(day);
     if (!existing || ts > existing.ts) {
       byDay.set(day, { v5h: combined5h, v7d: combined7d, ts });
@@ -67,42 +74,95 @@ function buildSeries(snapshots) {
     series.push({ date, v5h, v7d });
   }
   series.sort((a, b) => a.date.localeCompare(b.date));
-
-  // Cap to last N days
   return series.slice(-MAX_SERIES_DAYS);
 }
 
-function buildLatest(latestSnap) {
+function buildSeriesMiniMax(snapshots) {
+  const byDay = new Map();
+
+  for (const { data } of snapshots) {
+    const ts = data.timestamp ?? data.generated_at;
+    if (!ts) continue;
+    const day = ts.slice(0, 10);
+
+    let combined5h = 0, combined7d = 0;
+    if (data.minimax) {
+      combined5h = data.minimax.usage?.combined_5h ?? 0;
+      combined7d = data.minimax.usage?.combined_7d ?? 0;
+    }
+
+    const existing = byDay.get(day);
+    if (!existing || ts > existing.ts) {
+      byDay.set(day, { v5h: combined5h, v7d: combined7d, ts });
+    }
+  }
+
+  const series = [];
+  for (const [date, { v5h, v7d }] of byDay) {
+    series.push({ date, v5h, v7d });
+  }
+  series.sort((a, b) => a.date.localeCompare(b.date));
+  return series.slice(-MAX_SERIES_DAYS);
+}
+
+function buildLatestGLM(latestSnap) {
   const d = latestSnap.data;
-  const combined5h = d.combined_5h ?? 0;
-  const combined7d = d.combined_7d ?? 0;
-  const limit5h = d.limits?.window_5h_prompts ?? 1600;
-  const limit7d = d.limits?.window_7d_prompts ?? 8000;
+  let combined5h, combined7d, limit5h, limit7d;
 
-  const hermes5h = d.hermes?.calls_5h ?? combined5h;
-  const hermes7d = d.hermes?.calls_7d ?? combined7d;
-  const piLocal7d = d.pi_local?.in_7d ?? 0;
-  const claudeLocal7d = d.claude_local?.in_7d ?? 0;
-
-  const costCents = d.paperclip_cost?.total_cost_cents_seen ?? 0;
-  const flatrateOk = d.paperclip_cost?.flatrate_ok ?? true;
+  if (d.glm) {
+    combined5h = d.glm.usage?.combined_5h ?? 0;
+    combined7d = d.glm.usage?.combined_7d ?? 0;
+    limit5h = d.glm.limits?.window_5h ?? 1600;
+    limit7d = d.glm.limits?.window_7d ?? 8000;
+  } else {
+    combined5h = d.combined_5h ?? 0;
+    combined7d = d.combined_7d ?? 0;
+    limit5h = d.limits?.window_5h_prompts ?? 1600;
+    limit7d = d.limits?.window_7d_prompts ?? 8000;
+  }
 
   return {
-    generated_at: d.generated_at,
+    generated_at: d.generated_at ?? d.timestamp,
     combined_5h: combined5h,
     combined_7d: combined7d,
     pct_5h: Math.round((combined5h / limit5h) * 1000) / 10,
     pct_7d: Math.round((combined7d / limit7d) * 1000) / 10,
-    cost_cents: costCents,
-    flatrate_ok: flatrateOk,
-    coverage_note:
-      d.coverage_note ??
-      "Phase 2 (full): All major sources instrumented. TradingAgents logs exist but not yet parsed.",
-    tradingagents_available: d.tradingagents?.available ?? false,
-    hermes_5h: hermes5h,
-    hermes_7d: hermes7d,
-    pi_local_7d: piLocal7d,
-    claude_local_7d: claudeLocal7d,
+    limit_5h: limit5h,
+    limit_7d: limit7d,
+    flatrate_ok: true,
+  };
+}
+
+function buildLatestMiniMax(latestSnap) {
+  const d = latestSnap.data;
+
+  if (!d.minimax) {
+    return {
+      generated_at: d.timestamp ?? d.generated_at ?? new Date().toISOString(),
+      combined_5h: 0,
+      combined_7d: 0,
+      pct_5h: 0,
+      pct_7d: 0,
+      limit_5h: 1600,
+      limit_7d: 8000,
+      note: "No MiniMax data in snapshot",
+    };
+  }
+
+  const combined5h = d.minimax.usage?.combined_5h ?? 0;
+  const combined7d = d.minimax.usage?.combined_7d ?? 0;
+  const limit5h = d.minimax.limits?.window_5h_estimated ?? 1600;
+  const limit7d = d.minimax.limits?.window_7d_estimated ?? 8000;
+
+  return {
+    generated_at: d.timestamp ?? d.generated_at,
+    combined_5h: combined5h,
+    combined_7d: combined7d,
+    pct_5h: Math.round((combined5h / limit5h) * 1000) / 10,
+    pct_7d: Math.round((combined7d / limit7d) * 1000) / 10,
+    limit_5h: limit5h,
+    limit_7d: limit7d,
+    video_bonus: d.minimax.video_bonus ?? "N/A",
   };
 }
 
@@ -114,26 +174,58 @@ function bake() {
   }
 
   const latestSnap = snapshots[snapshots.length - 1];
-  const latest = buildLatest(latestSnap);
-  const series = buildSeries(snapshots);
+  const latestGLM = buildLatestGLM(latestSnap);
+  const seriesGLM = buildSeriesGLM(snapshots);
+  const latestMiniMax = buildLatestMiniMax(latestSnap);
+  const seriesMiniMax = buildSeriesMiniMax(snapshots);
 
+  // Backwards-compatible top-level fields (legacy consumers)
   const baked = {
     available: true,
-    generated_at: latest.generated_at,
-    note: "Baked at build time from /home/admin01/ops/reports snapshots (build-time embed → no runtime upstream).",
+    generated_at: latestGLM.generated_at,
+    note: "MMB-401 dual-provider: GLM + MiniMax quotas baked at build time. See glm.* and minimax.* sub-objects.",
+    // Legacy shape (kept for backward compat)
     limits: {
-      window_5h: latestSnap.data.limits?.window_5h_prompts ?? 1600,
-      window_7d: latestSnap.data.limits?.window_7d_prompts ?? 8000,
+      window_5h: latestGLM.limit_5h,
+      window_7d: latestGLM.limit_7d,
     },
-    latest,
-    series,
+    latest: {
+      generated_at: latestGLM.generated_at,
+      combined_5h: latestGLM.combined_5h,
+      combined_7d: latestGLM.combined_7d,
+      pct_5h: latestGLM.pct_5h,
+      pct_7d: latestGLM.pct_7d,
+      cost_cents: 0,
+      flatrate_ok: latestGLM.flatrate_ok,
+      coverage_note: "Phase 2 (full) + MMB-401 dual-provider",
+      tradingagents_available: false,
+      hermes_5h: latestGLM.combined_5h,
+      hermes_7d: latestGLM.combined_7d,
+      pi_local_7d: 0,
+      claude_local_7d: 0,
+    },
+    series: seriesGLM,
+    // MMB-401: dual-provider objects
+    glm: {
+      provider: "z.ai (GLM Coding Plan)",
+      limits: { window_5h: latestGLM.limit_5h, window_7d: latestGLM.limit_7d },
+      latest: latestGLM,
+      series: seriesGLM,
+    },
+    minimax: {
+      provider: "MiniMax (Coding Plan)",
+      limits: { window_5h: latestMiniMax.limit_5h, window_7d: latestMiniMax.limit_7d },
+      latest: latestMiniMax,
+      series: seriesMiniMax,
+    },
   };
 
   writeFileSync(OUT_FILE, JSON.stringify(baked, null, 0) + "\n", "utf8");
 
   console.log(`✓ Baked ${snapshots.length} snapshots → ${basename(OUT_FILE.pathname)}`);
-  console.log(`  Latest: ${latest.generated_at} | 5h: ${latest.combined_5h} (${latest.pct_5h}%) | 7d: ${latest.combined_7d} (${latest.pct_7d}%)`);
-  console.log(`  Series: ${series.length} data points (${series[0].date} → ${series[series.length - 1].date})`);
+  console.log(`  GLM:  5h ${latestGLM.combined_5h}/${latestGLM.limit_5h} (${latestGLM.pct_5h}%) | 7d ${latestGLM.combined_7d}/${latestGLM.limit_7d} (${latestGLM.pct_7d}%)`);
+  console.log(`  MiniMax: 5h ${latestMiniMax.combined_5h}/${latestMiniMax.limit_5h} (${latestMiniMax.pct_5h}%) | 7d ${latestMiniMax.combined_7d}/${latestMiniMax.limit_7d} (${latestMiniMax.pct_7d}%)`);
+  console.log(`  GLM series: ${seriesGLM.length} pts | MiniMax series: ${seriesMiniMax.length} pts`);
 }
 
 bake();

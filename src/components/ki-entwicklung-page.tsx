@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLang } from "@/components/i18n-provider";
 import { useEffect, useRef } from "react";
 
@@ -446,9 +447,9 @@ export function KiEntwicklungPage() {
               <a href="mailto:hallo@lazy-code.de" className="btn btn-primary">
                 {lang === "de" ? "Projekt anfragen" : "Request project"}
               </a>
-              <a href="/" className="btn btn-secondary">
+              <Link href="/" className="btn btn-secondary">
                 {lang === "de" ? "Zurück zur Startseite" : "Back to home"}
-              </a>
+              </Link>
             </div>
           </RevealDiv>
         </div>
