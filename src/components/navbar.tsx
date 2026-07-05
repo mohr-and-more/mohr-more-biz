@@ -47,7 +47,7 @@ export function Navbar() {
   const links = [
     { href: "/how-to", label: "How-To" },
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/lazy-code", label: "Lazy Code" },
+    { href: "/ki-entwicklung", label: t.nav.kiEntwicklung[lang] },
     { href: "/zero-humans", label: t.nav.zeroHumans[lang] },
     { href: "/zero-humans/team", label: t.nav.team[lang] },
     { href: "/#manifest", label: t.nav.position[lang] },

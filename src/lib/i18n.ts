@@ -10,6 +10,7 @@ export const translations = {
     login: { de: "Login", en: "Login" },
     zeroHumans: { de: "Zero Humans", en: "Zero Humans" },
     team: { de: "Team", en: "Team" },
+    kiEntwicklung: { de: "KI Entwicklung", en: "AI Engineering" },
   },
   hero: {
     label: { de: "Unternehmerduo // 2026", en: "Entrepreneurial Duo // 2026" },
@@ -65,7 +66,7 @@ export const translations = {
       },
       items: [
         { de: "Flowfon / TerminTelefon — 24/7 KI-Telefonassistenten", en: "Flowfon / TerminTelefon — 24/7 AI phone assistants" },
-        { de: "LazyCode⋮Cologne — Full-Stack Entwicklung & Umsetzung", en: "LazyCode⋮Cologne — Full-Stack Development & Execution" },
+        { de: "Full-Stack Entwicklung & Cloud-Architektur (Sparte Development)", en: "Full-stack development & cloud architecture (Development Division)" },
         { de: "FLIXFOTO™ — KI-Produktfotografie für E-Commerce", en: "FLIXFOTO™ — AI product photography for E-Commerce" },
         { de: "Alles10Euro 2.0 — Festpreis-Onlineshop", en: "Alles10Euro 2.0 — fixed-price online shop" },
         { de: "NODᵉSIM Network — eSIM-NFT · IoT · Web3 / Blockchain", en: "NODᵉSIM Network — eSIM-NFT · IoT · Web3 / Blockchain" },

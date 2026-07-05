@@ -4,7 +4,9 @@
 
 /* ============================================================
    MOHR & MORE BUSINESS — Design System
-   Adapted from LazyCode⋮Cologne design (monochrome + signal accent)
+   LazyCode⋮Cologne design (monochrome + signal accent) applied
+   to the main site. LazyCode itself now lives under /ki-entwicklung
+   as "Sparte Development".
    ============================================================ */
 
 :root {
@@ -409,6 +411,27 @@ p { font-size: var(--text-base); }
   position: relative;
 }
 .vision-card p, .system-card p, .ethos-card p { color: var(--text-muted); position: relative; }
+
+/* Highlight a single sparte with stronger visual weight */
+.vision-card.is-highlight,
+.system-card.is-highlight,
+.ethos-card.is-highlight {
+  border-color: var(--accent);
+  background:
+    linear-gradient(180deg, rgba(159, 248, 242, 0.06), rgba(159, 248, 242, 0.015)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.018));
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 30px -10px rgba(159, 248, 242, 0.18);
+}
+.vision-card.is-highlight::after,
+.system-card.is-highlight::after,
+.ethos-card.is-highlight::after {
+  background: radial-gradient(circle, rgba(159, 248, 242, 0.22), transparent 60%);
+}
+.vision-card.is-highlight .tag,
+.system-card.is-highlight .tag,
+.ethos-card.is-highlight .tag {
+  color: var(--accent);
+}
 
 .tag {
   display: inline-flex;

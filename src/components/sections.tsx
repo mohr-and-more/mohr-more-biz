@@ -38,22 +38,96 @@ export function Hero() {
   const t = translations.hero;
   return (
     <section className="hero relative flex min-h-[90vh] flex-col justify-center overflow-hidden pt-16">
+      <div className="video-bg" aria-hidden="true">
+        <video autoPlay loop muted playsInline src="/videos/SCALE.mp4" />
+      </div>
       <div className="hero-glow pointer-events-none absolute -right-[10%] -top-[20%] h-[600px] w-[600px] blur-[60px]" />
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <span className="label mb-4 block">
-          <span className="accent-line" />
-          {t.label[lang]}
-        </span>
-        <h1 className="mb-6" dangerouslySetInnerHTML={{ __html: t.title[lang] }} />
-        <p className="mb-10 max-w-[60ch] text-lg text-[#999]">{t.subtitle[lang]}</p>
-        <div className="flex flex-wrap gap-4">
-          <a href="#kontakt" className="btn btn-primary">
-            {t.ctaPrimary[lang]}
-          </a>
-          <a href="#system" className="btn btn-secondary">
-            {t.ctaSecondary[lang]}
-          </a>
+      <div className="container hero-grid">
+        <div>
+          <span className="label mb-4 block reveal is-visible">
+            <span className="accent-line" />
+            {t.label[lang]}
+          </span>
+          <h1
+            className="hero-title reveal is-visible"
+            dangerouslySetInnerHTML={{ __html: t.title[lang] }}
+          />
+          <p
+            className="hero-copy reveal is-visible"
+            dangerouslySetInnerHTML={{ __html: t.subtitle[lang] }}
+          />
+          <div className="hero-actions reveal is-visible">
+            <a href="#kontakt" className="btn btn-primary">
+              {t.ctaPrimary[lang]}
+            </a>
+            <a href="#system" className="btn btn-secondary">
+              {t.ctaSecondary[lang]}
+            </a>
+          </div>
+          <div className="hero-meta reveal is-visible" aria-label="Kennzahlen">
+            {[
+              { value: "272", label: { de: "Agenten", en: "Agents" } },
+              { value: "5", label: { de: "Ebenen", en: "Levels" } },
+              { value: "24/7", label: { de: "Operativ", en: "Operative" } },
+            ].map((m, i) => (
+              <article className="metric" key={i}>
+                <strong>{m.value}</strong>
+                <span>{m.label[lang]}</span>
+              </article>
+            ))}
+          </div>
         </div>
+
+        <aside className="hero-panel reveal is-visible" aria-label="Sparten-Übersicht">
+          <div className="panel-grid">
+            <div>
+              <div className="ascii-caption">
+                <span>MOHR &amp; MORE</span>
+                <span>ZERO-HUMAN</span>
+              </div>
+              <pre className="ascii-block" aria-hidden="true">
+{`██   ██  ██████  ██   ██  ██████
+██   ██  ██  ██  ███  ██    ██
+███████  ██████  ██ █ ██    ██
+██   ██  ██  ██  ██  ███    ██
+██   ██  ██  ██  ██   ██  ██████
+
+       ◢▣Ŀ◣ COMPANY
+    ⊙◬⊙  COLOGNE™
+       ◥▤⫱◤
+
+    ONE · HUMAN · ONE · AI`}
+              </pre>
+            </div>
+            <div className="stack" aria-label="Sparten">
+              {[
+                { title: lang === "de" ? "Commerce" : "Commerce", meta: lang === "de" ? "Gregor Mohr · Module 01" : "Gregor Mohr · Module 01", state: lang === "de" ? "Aktiv" : "Active" },
+                { title: lang === "de" ? "Technology" : "Technology", meta: lang === "de" ? "Gunnar Mohr · Module 02" : "Gunnar Mohr · Module 02", state: lang === "de" ? "Aktiv" : "Active" },
+                { title: lang === "de" ? "KI Entwicklung" : "AI Development", meta: lang === "de" ? "Sparte Development →" : "Development Division →", state: "—", href: "/ki-entwicklung" },
+              ].map((s, i) => (
+                s.href ? (
+                  <a key={i} href={s.href} className="stack-card" style={{ textDecoration: "none", color: "inherit" }}>
+                    <span className="stack-dot" aria-hidden="true" />
+                    <div>
+                      <strong>{s.title}</strong>
+                      <span className="meta">{s.meta}</span>
+                    </div>
+                    <em>{s.state}</em>
+                  </a>
+                ) : (
+                  <article className="stack-card" key={i}>
+                    <span className="stack-dot" aria-hidden="true" />
+                    <div>
+                      <strong>{s.title}</strong>
+                      <span className="meta">{s.meta}</span>
+                    </div>
+                    <em>{s.state}</em>
+                  </article>
+                )
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );
@@ -187,7 +261,7 @@ export function SystemArchitecture() {
                     TECHNOLOGY MODULE
                   </div>
                   <ul className="mt-2 flex flex-col gap-1">
-                    {["TerminTelefon", "Flowfon", "LazyCode", "KI Berater"].map((item) => (
+                    {["TerminTelefon", "Flowfon", "KI Berater", "Full-Stack"].map((item) => (
                       <li
                         key={item}
                         className="font-mono text-[0.6rem] leading-relaxed sm:text-xs"

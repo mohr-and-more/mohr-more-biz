@@ -50,6 +50,35 @@ export function LazyCodePage() {
   
   return (
     <main>
+      {/* Sparte-Context-Banner */}
+      <nav
+        aria-label={lang === "de" ? "Sparten-Kontext" : "Division context"}
+        className="sparte-banner"
+        style={{
+          position: "relative",
+          marginTop: "64px",
+          padding: "var(--space-4) var(--space-6)",
+          textAlign: "center",
+          fontFamily: "var(--font-mono)",
+          fontSize: "0.72rem",
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: "var(--text-faint)",
+          background: "linear-gradient(180deg, rgba(159,248,242,0.05), transparent)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <span style={{ color: "var(--accent)" }}>KI Entwicklung</span>
+        <span style={{ margin: "0 0.6rem", opacity: 0.6 }}>›</span>
+        <span>
+          {lang === "de" ? "Sparte 02 · Development · LazyCode⋮Cologne" : "Division 02 · Development · LazyCode⋮Cologne"}
+        </span>
+        {" · "}
+        <a href="/ki-entwicklung" style={{ color: "inherit", textDecoration: "underline" }}>
+          {lang === "de" ? "← zur Übersicht" : "← overview"}
+        </a>
+      </nav>
+
       {/* Hero */}
       <section className="hero section" id="top">
         <div className="video-bg" aria-hidden="true">
