@@ -542,6 +542,80 @@ footer { padding: 0 0 var(--space-10); }
 
 
 /* ============================================================
+   System Architecture — sys-card + module badges + responsive sysmap
+   (MMB-459: replaces fixed-width ASCII <pre> that overflowed on mobile)
+   ============================================================ */
+
+.sys-card {
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+.module-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-2);
+}
+
+.sys-card .role {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* ── Responsive System Integration Map ── */
+/* Replaces 63-column ASCII art that caused horizontal overflow on mobile.
+   Fully fluid: w-full + max-w-[640px], all children have min-w-0. */
+
+.sysmap {
+  border-radius: var(--radius-lg);
+}
+
+.sysmap-header {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sysmap-module {
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+
+.sysmap-module:hover {
+  border-color: var(--accent);
+}
+
+.sysmap-exec {
+  border-radius: var(--radius);
+}
+
+.sysmap-output {
+  border-radius: var(--radius);
+}
+
+.sysmap-status {
+  background: rgba(0, 0, 0, 0.2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* On very narrow screens (<360px), shrink status bar gap further */
+@media (max-width: 360px) {
+  .sysmap-status {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .sysmap-modules {
+    gap: var(--space-3);
+  }
+}
+
+
+/* ============================================================
    Dashboard 2.0 — Complete dash-* + quota design system
    ============================================================ */
 

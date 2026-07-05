@@ -94,7 +94,7 @@ export function SystemArchitecture() {
           <h2 dangerouslySetInnerHTML={{ __html: t.title[lang] }} />
         </RevealDiv>
 
-        <div className="system-grid mt-12 grid max-w-[720px] gap-6">
+        <div className="system-grid mt-12 grid max-w-[720px] grid-cols-1 gap-6 sm:grid-cols-2">
           {[t.module01, t.module02].map((mod, i) => (
             <RevealDiv key={i}>
               <article className="sys-card">
@@ -115,56 +115,184 @@ export function SystemArchitecture() {
         </div>
 
         <RevealDiv className="mt-8">
-          <div className="ascii-panel mx-auto w-fit overflow-x-auto border p-6" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            <pre className="whitespace-pre text-center font-mono text-[clamp(0.55rem,1vw,0.8rem)] leading-tight text-[var(--text-secondary)]">
-{`+-------------------------------------------------------------+
-|                                                          |
-|  M O H R   &   M O R E   B U S I N E S S                |
-|                                                          |
-+-------------------------------------------------------------+
-|                                                          |
-|  SYSTEM INTEGRATION MAP                                  |
-|                                                          |
-+-------------------------------------------------------------+
-|                                                          |
-|  +------------------+          +------------------+       |
-|  |                  |          |                  |       |
-|  | COMMERCE         |  sync    | TECHNOLOGY       |       |
-|  | MODULE           |<-------->| MODULE           |       |
-|  |                  |          |                  |       |
-|  | * trabusco       |          | * TerminTelefon  |       |
-|  | * alles10euro    |          | * Flowfon        |       |
-|  | * TENIOS         |          | * LazyCode       |       |
-|  | * ZigZag/BuyBay  |          | * KI Berater     |       |
-|  |                  |          |                  |       |
-|  | Gregor Mohr      |          | Gunnar Mohr      |       |
-|  |                  |          |                  |       |
-|  +--------+---------+          +--------+---------+       |
-|           |                             |                 |
-|           |    +-------------------+    |                 |
-|           +--->|    EXECUTION      |<---+                 |
-|                |      LAYER        |                      |
-|                |                   |                      |
-|                |  * KI-Agenten     |                      |
-|                |  * Automatisierung|                      |
-|                |  * SaaS Plattform |                      |
-|                |  * Full-Stack Dev |                      |
-|                |                   |                      |
-|                +---------+---------+                      |
-|                          |                                |
-|                +---------v---------+                      |
-|                |                   |                      |
-|                |      OUTPUT       |                      |
-|                |                   |                      |
-|                |  Commerce x Tech  |                      |
-|                |     = Value       |                      |
-|                |                   |                      |
-|                +-------------------+                      |
-|                                                          |
-|  STATUS: ONLINE     SYNC: ACTIVE     UPTIME: 99.9%       |
-|                                                          |
-+-------------------------------------------------------------+`}
-            </pre>
+          {/* ═══ Responsive System Integration Map ═══
+              Replaces the fixed-width ASCII <pre> (63 cols, overflow on mobile).
+              Desktop ≥640px: two modules side-by-side with sync connector.
+              Mobile <640px: vertical stack with downward connectors.
+              Preserves terminal/brutalist aesthetic (monospace, design tokens). */}
+          <div
+            className="sysmap mx-auto w-full max-w-[640px] overflow-hidden border"
+            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+          >
+            {/* ── Header bar ── */}
+            <div
+              className="sysmap-header border-b px-4 py-3 text-center"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div
+                className="font-mono text-[0.6rem] uppercase tracking-[0.2em] sm:text-xs"
+                style={{ color: "var(--text)" }}
+              >
+                M&nbsp;O&nbsp;H&nbsp;R&nbsp;&nbsp;&amp;&nbsp;&nbsp;M&nbsp;O&nbsp;R&nbsp;E&nbsp;&nbsp;B&nbsp;U&nbsp;S&nbsp;I&nbsp;N&nbsp;E&nbsp;S&nbsp;S
+              </div>
+              <div
+                className="mt-1 font-mono text-[0.55rem] uppercase tracking-[0.15em] sm:text-[0.65rem]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                System Integration Map
+              </div>
+            </div>
+
+            {/* ── Body ── */}
+            <div className="sysmap-body p-4 sm:p-6">
+              {/* Top row: two modules — side-by-side on ≥640px, stacked on mobile */}
+              <div className="sysmap-modules grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                <div
+                  className="sysmap-module min-w-0 border p-3 sm:p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                >
+                  <div
+                    className="font-mono text-[0.55rem] uppercase tracking-wider sm:text-[0.65rem]"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    COMMERCE MODULE
+                  </div>
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {["trabusco", "alles10euro", "TENIOS", "ZigZag/BuyBay"].map((item) => (
+                      <li
+                        key={item}
+                        className="font-mono text-[0.6rem] leading-relaxed sm:text-xs"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        <span style={{ color: "var(--accent)" }}>&gt;</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div
+                    className="mt-2 font-mono text-[0.55rem] sm:text-[0.65rem]"
+                    style={{ color: "var(--text)" }}
+                  >
+                    Gregor Mohr
+                  </div>
+                </div>
+
+                <div
+                  className="sysmap-module min-w-0 border p-3 sm:p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                >
+                  <div
+                    className="font-mono text-[0.55rem] uppercase tracking-wider sm:text-[0.65rem]"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    TECHNOLOGY MODULE
+                  </div>
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {["TerminTelefon", "Flowfon", "LazyCode", "KI Berater"].map((item) => (
+                      <li
+                        key={item}
+                        className="font-mono text-[0.6rem] leading-relaxed sm:text-xs"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        <span style={{ color: "var(--accent)" }}>&gt;</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div
+                    className="mt-2 font-mono text-[0.55rem] sm:text-[0.65rem]"
+                    style={{ color: "var(--text)" }}
+                  >
+                    Gunnar Mohr
+                  </div>
+                </div>
+              </div>
+
+              {/* Sync connector — bidirectional arrows on desktop, vertical on mobile */}
+              <div className="sysmap-connector flex items-center justify-center py-2 sm:py-3">
+                <span
+                  className="font-mono text-[0.55rem] uppercase tracking-wider sm:text-[0.65rem]"
+                  style={{ color: "var(--accent)" }}
+                >
+                  {"↗"} sync {"↗"}
+                </span>
+              </div>
+
+              {/* Execution Layer */}
+              <div
+                className="sysmap-exec min-w-0 border p-3 sm:p-4"
+                style={{ borderColor: "var(--accent)", background: "var(--surface)" }}
+              >
+                <div
+                  className="text-center font-mono text-[0.55rem] uppercase tracking-[0.15em] sm:text-[0.65rem]"
+                  style={{ color: "var(--accent)" }}
+                >
+                  Execution Layer
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-4">
+                  {["KI-Agenten", "Automatisierung", "SaaS Plattform", "Full-Stack Dev"].map((item) => (
+                    <div
+                      key={item}
+                      className="text-center font-mono text-[0.6rem] leading-relaxed sm:text-xs"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Down arrow */}
+              <div className="flex items-center justify-center py-1 sm:py-2">
+                <span className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {"↓"}
+                </span>
+              </div>
+
+              {/* Output */}
+              <div
+                className="sysmap-output min-w-0 border p-3 text-center sm:p-4"
+                style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+              >
+                <div
+                  className="font-mono text-[0.55rem] uppercase tracking-[0.15em] sm:text-[0.65rem]"
+                  style={{ color: "var(--text)" }}
+                >
+                  Output
+                </div>
+                <div
+                  className="mt-1 font-mono text-[0.6rem] sm:text-xs"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Commerce {"×"} Tech = Value
+                </div>
+              </div>
+            </div>
+
+            {/* ── Status bar ── */}
+            <div
+              className="sysmap-status flex items-center justify-center gap-4 border-t px-4 py-2 sm:gap-8"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {[
+                ["STATUS", "ONLINE"],
+                ["SYNC", "ACTIVE"],
+                ["UPTIME", "99.9%"],
+              ].map(([label, value]) => (
+                <div key={label} className="text-center">
+                  <span
+                    className="font-mono text-[0.5rem] uppercase tracking-wider sm:text-[0.6rem]"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {label}:
+                  </span>{" "}
+                  <span
+                    className="font-mono text-[0.5rem] uppercase sm:text-[0.6rem]"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </RevealDiv>
       </div>
