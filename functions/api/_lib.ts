@@ -23,6 +23,18 @@ export interface Env {
   RATE_LIMIT?: KVNamespace;
 }
 
+/**
+ * Local minimal declaration of Cloudflare's KVNamespace binding for the
+ * Pages Functions runtime. Mirrors the declaration in kontakt.ts so both
+ * endpoints compile under the Next.js type-check worker. The real,
+ * full-fat type lives in @cloudflare/workers-types (not installed here
+ * because Pages Functions don't ship the Workers polyfill to the build).
+ */
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
 export const DEFAULT_API_BASE = "https://app.mohr-more.biz";
 export const DEFAULT_COMPANY_ID = "b7e413ab-35c1-4034-b474-8aad39901e72";
 export const ISSUE_LIMIT = 500;

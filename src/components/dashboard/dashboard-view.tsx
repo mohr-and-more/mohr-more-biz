@@ -12,6 +12,7 @@ import { IssueCard } from "./issue-card";
 import { FilterBar } from "./filter-bar";
 import { StatusTabs } from "./status-tabs";
 import { QuotaReport } from "./quota-report";
+import { SloReport } from "./slo-report";
 
 type State =
   | { kind: "loading" }
@@ -92,6 +93,7 @@ export function DashboardView() {
   return (
     <main className="dash-main">
       <QuotaReport />
+      <SloReport />
       <section className="dash-hero">
         <span className="label">
           <span className="accent-line" />

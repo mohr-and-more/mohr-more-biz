@@ -190,6 +190,92 @@ export async function fetchQuota(signal?: AbortSignal): Promise<QuotaData> {
   return (await res.json()) as QuotaData;
 }
 
+// ---------------------------------------------------------------------------
+// Daily Stability-SLO snapshot (MMB-505 → MMB-37 [A4]).
+// The relay (charlie-dashboard-api :3010) owns the in-memory cache and
+// watches the `slo-report` Paperclip doc for revision bumps; the edge
+// function /api/slo proxies it under the same `mmb_dash` cookie gate.
+// ---------------------------------------------------------------------------
+
+export interface SloFailureMode {
+  code: string;
+  count: number;
+  trend: string;
+}
+
+export interface SloAgentInError {
+  name: string;
+  role: string | null;
+  adapter: string;
+  last_heartbeat: string;
+}
+
+export interface SloWindow {
+  adapter: string;
+  success_pct: number;
+  runs: number;
+  succeeded: number;
+}
+
+export interface SloOverall24h {
+  success_pct: number | null;
+  runs: number | null;
+  succeeded: number | null;
+  failed: number | null;
+  timeout: number | null;
+}
+
+export interface SloHeadline {
+  success_pct: number | null;
+  delta: string | null;
+  tail: string;
+}
+
+export interface SloWatchItem {
+  title: string;
+  detail: string;
+}
+
+export interface SloData {
+  generated_at: string;
+  snapshot_at: string | null;
+  revision: number;
+  revision_id: string | null;
+  doc_updated_at: string | null;
+  regression: boolean;
+  overall24h: SloOverall24h | null;
+  headline: SloHeadline;
+  windows: SloWindow[];
+  failureModes: SloFailureMode[];
+  agentsInError: SloAgentInError[];
+  watchItems: SloWatchItem[];
+  body_length: number;
+  cache: { last_fetched_at: string | null; last_error: string | null };
+}
+
+/** Fetch Daily SLO snapshot from the same-origin Pages Function. */
+export async function fetchSlo(signal?: AbortSignal): Promise<SloData> {
+  const res = await fetch("/api/slo", { signal, headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw new Error(`SLO API antwortet mit Status ${res.status}`);
+  }
+  return (await res.json()) as SloData;
+}
+
+/**
+ * SLO verdict colour (Grün/Gelb/Rot) for the headline 24h number.
+ *   < 60 %  → red (well below the 90 % target)
+ *   60–80 % → yellow (warning band)
+ *   ≥ 80 %  → green (close to / meeting target)
+ * Caps at 100 (>=100 is always green).
+ */
+export function sloLevel(pct: number | null | undefined): QuotaLevel {
+  if (pct == null || Number.isNaN(pct)) return "red";
+  if (pct >= 80) return "green";
+  if (pct >= 60) return "yellow";
+  return "red";
+}
+
 /**
  * Apply the active filters + search to the issue list.
  * Search is case-insensitive across title, subject and summary.
