@@ -139,11 +139,20 @@ function DualProviderPanel({ glm, minimax }: { glm: ProviderQuota; minimax: Prov
       </div>
 
       <p className="quota-foot">
-        GLM: 5h- + 7d-Fenster · MiniMax: 5h- + 7d-Fenster · Grenzen: 1600/5h, 8000/7d.
-        Lower Bound: Alle Quellen instrumentiert.
+        GLM: rollierendes 5h- + 7d-Fenster · MiniMax: rollierendes 5h- + 7d-Fenster ·
+        Grenzen 1600/5h, 8000/7d. Reset: rollierend (5h-Block endet alle 5h, 7d-Block alle 7 Tage).
+        Letzter Snapshot: {formatSnapshot(glm.latest.generated_at)}.
       </p>
     </section>
   );
+}
+
+function formatSnapshot(iso?: string): string {
+  if (!iso) return "unbekannt";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())} UTC`;
 }
 
 function ProviderBadge({ provider, worst }: { provider: Provider; worst: "green" | "yellow" | "red" }) {
@@ -316,8 +325,8 @@ const PAD = { left: 52, right: 24, top: 30, bottom: 34 };
 
 function worstLevel(pct5h: number, pct7d: number): "green" | "yellow" | "red" {
   return (["red", "yellow", "green"] as const).find((l) =>
-    l === "red" ? (pct5h >= 90 || pct7d >= 90) :
-    l === "yellow" ? (pct5h >= 70 || pct7d >= 70) : true
+    l === "red" ? (pct5h > 80 || pct7d > 80) :
+    l === "yellow" ? (pct5h >= 60 || pct7d >= 60) : true
   ) ?? "green";
 }
 

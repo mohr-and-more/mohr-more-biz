@@ -170,8 +170,8 @@ export interface QuotaData {
 export type QuotaLevel = "green" | "yellow" | "red";
 
 export function quotaLevel(pct: number): QuotaLevel {
-  if (pct >= 90) return "red";
-  if (pct >= 70) return "yellow";
+  if (pct > 80) return "red"; /* MMB-412 #5: 60/80 split */
+  if (pct >= 60) return "yellow";
   return "green";
 }
 
