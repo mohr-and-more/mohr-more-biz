@@ -4,7 +4,8 @@ import { useLang } from "@/components/i18n-provider";
 import { translations } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { usePathname } from "next/navigation";
 
 function MenuIcon() {
   return (
@@ -27,12 +28,57 @@ function LogoIcon() {
   );
 }
 
+/**
+ * Route-mirroring map between DE and EN URLs (MMB-468 / Sub 8).
+ * Each entry maps a DE path → its EN counterpart.
+ * The home "/" maps to "/en", and a section like "/leistungen/beratung"
+ * maps to "/en/services/beratung".
+ */
+type MirrorRule = { match: RegExp; en: (m: RegExpMatchArray) => string };
+
+const DE_TO_EN: MirrorRule[] = [
+  { match: /^\/$/, en: () => "/en" },
+  { match: /^\/leistungen\/([^/]+)\/?$/, en: (m) => `/en/services/${m[1]}` },
+  { match: /^\/leistungen\/?$/, en: () => "/en/services" },
+  { match: /^\/kontakt\/?$/, en: () => "/en/contact" },
+  { match: /^\/referenzen\/([^/]+)\/?$/, en: (m) => `/en/references/${m[1]}` },
+  { match: /^\/referenzen\/?$/, en: () => "/en/references" },
+  { match: /^\/ueber-uns\/?$/, en: () => "/en/about" },
+  { match: /^\/de\/ueber-uns\/?$/, en: () => "/en/about" },
+  // Pages that intentionally stay DE-only fall back to EN home.
+  { match: /^\/(dashboard|how-to|ki-entwicklung|ki-entwicklung\/.*|lazy-code|lazy-code\/.*|zero-humans(?:\/.*)?|design-system)\/?$/, en: () => "/en" },
+];
+
+const EN_TO_DE: MirrorRule[] = [
+  { match: /^\/en\/?$/, en: () => "/" },
+  { match: /^\/en\/services\/([^/]+)\/?$/, en: (m) => `/leistungen/${m[1]}` },
+  { match: /^\/en\/services\/?$/, en: () => "/leistungen" },
+  { match: /^\/en\/contact\/?$/, en: () => "/kontakt" },
+  { match: /^\/en\/references\/([^/]+)\/?$/, en: (m) => `/referenzen/${m[1]}` },
+  { match: /^\/en\/references\/?$/, en: () => "/referenzen" },
+  { match: /^\/en\/about\/?$/, en: () => "/ueber-uns" },
+];
+
+/**
+ * Return the canonical counterpart of the current pathname in the other
+ * language, falling back to home if no mirror exists.
+ */
+function counterpart(pathname: string, targetLang: "de" | "en"): string {
+  const rules = targetLang === "en" ? DE_TO_EN : EN_TO_DE;
+  for (const { match, en } of rules) {
+    const m = pathname.match(match);
+    if (m) return en(m);
+  }
+  return targetLang === "en" ? "/en" : "/";
+}
+
 export function Navbar() {
-  const { lang, toggleLang } = useLang();
+  const { lang } = useLang();
   const t = translations;
   const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState(false);
   const [lastScroll, setLastScroll] = useState(0);
+  const pathname = usePathname() || "/";
 
   useEffect(() => {
     const onScroll = () => {
@@ -50,11 +96,16 @@ export function Navbar() {
     { href: "/ki-entwicklung", label: t.nav.kiEntwicklung[lang] },
     { href: "/zero-humans", label: t.nav.zeroHumans[lang] },
     { href: "/zero-humans/team", label: t.nav.team[lang] },
-    { href: "/#manifest", label: t.nav.position[lang] },
-    { href: "/#system", label: t.nav.system[lang] },
-    { href: "/#principles", label: t.nav.principles[lang] },
-    { href: "/#vision", label: t.nav.vision[lang] },
+    { href: lang === "en" ? "/en#manifest" : "/#manifest", label: t.nav.position[lang] },
+    { href: lang === "en" ? "/en#system" : "/#system", label: t.nav.system[lang] },
+    { href: lang === "en" ? "/en#principles" : "/#principles", label: t.nav.principles[lang] },
+    { href: lang === "en" ? "/en#vision" : "/#vision", label: t.nav.vision[lang] },
   ];
+
+  const otherLang: "de" | "en" = lang === "de" ? "en" : "de";
+  const toggleHref = useMemo(() => counterpart(pathname, otherLang), [pathname, otherLang]);
+  const toggleLabel = lang === "de" ? "EN" : "DE";
+  const toggleTitle = lang === "de" ? "Switch to English" : "Auf Deutsch wechseln";
 
   return (
     <header
@@ -67,7 +118,11 @@ export function Navbar() {
       }}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <a href="/" className="flex items-center gap-3 no-underline" aria-label="MOHR & MORE Startseite">
+        <a
+          href={lang === "en" ? "/en" : "/"}
+          className="flex items-center gap-3 no-underline"
+          aria-label="MOHR & MORE Startseite"
+        >
           <LogoIcon />
           <span className="flex flex-col leading-tight">
             <strong className="font-heading text-sm font-bold tracking-tight" style={{ letterSpacing: "-0.02em" }}>
@@ -86,7 +141,7 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
-          <a href="/#kontakt" className="nav-cta">
+          <a href={lang === "en" ? "/en#kontakt" : "/#kontakt"} className="nav-cta">
             {t.nav.contact[lang]}
           </a>
           <a href="https://app.mohr-more.biz/login" className="nav-cta" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
@@ -95,15 +150,22 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleLang}
-            className="font-mono text-xs tracking-wider"
+          {/*
+            Language switcher (MMB-468 / Sub 8):
+            Real route-link to the canonical counterpart page in the other language.
+            Renders as <a> so it works without JS (graceful, no flash).
+          */}
+          <a
+            href={toggleHref}
+            title={toggleTitle}
+            aria-label={toggleTitle}
+            rel="alternate"
+            hrefLang={otherLang}
+            className="group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 font-mono text-xs tracking-wider"
             style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
           >
-            {lang === "de" ? "DE | EN" : "EN | DE"}
-          </Button>
+            {toggleLabel}
+          </a>
 
           {/* Mobile hamburger */}
           <Sheet open={open} onOpenChange={setOpen}>
@@ -124,11 +186,20 @@ export function Navbar() {
                     {l.label}
                   </a>
                 ))}
-                <a href="/#kontakt" onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center">
+                <a href={lang === "en" ? "/en#kontakt" : "/#kontakt"} onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center">
                   {t.nav.contact[lang]}
                 </a>
                 <a href="https://app.mohr-more.biz/login" onClick={() => setOpen(false)} className="nav-cta mt-2 block text-center" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
                   {t.nav.login[lang]}
+                </a>
+                <a
+                  href={toggleHref}
+                  onClick={() => setOpen(false)}
+                  className="nav-cta mt-2 block text-center"
+                  rel="alternate"
+                  hrefLang={otherLang}
+                >
+                  {toggleLabel === "EN" ? "English" : "Deutsch"}
                 </a>
               </nav>
             </SheetContent>

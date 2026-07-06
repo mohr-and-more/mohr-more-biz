@@ -285,6 +285,346 @@ export const translations = {
       en: "Portraits are generated deterministically from the agent ID · Cryptopunks style · no real personal data",
     },
   },
+  contactPage: {
+    pageLabel: { de: "Kontakt", en: "Contact" },
+    hero: {
+      title: {
+        de: "Sprechen Sie mit uns.",
+        en: "Let's talk.",
+      },
+      intro: {
+        de: "Wir antworten binnen 24 Stunden — persönlich, unverbindlich und auf den Punkt. Wählen Sie den Weg, der Ihnen am liebsten ist.",
+        en: "We respond within 24 hours — personally, no strings attached, straight to the point. Pick the channel that suits you best.",
+      },
+    },
+    cards: {
+      callLabel: { de: "Anrufen", en: "Call us" },
+      callTitle: { de: "Direkter Draht", en: "Direct line" },
+      callText: {
+        de: "Mo–Fr 8–17 Uhr. Persönlich, ohne Warteschleifen-Robot.",
+        en: "Mon–Fri 8–17. Real people, no IVR maze.",
+      },
+      emailLabel: { de: "E-Mail", en: "Email" },
+      emailTitle: { de: "Schreiben Sie uns", en: "Send us a message" },
+      emailText: {
+        de: "Antwort binnen 24 Stunden. Auch für nicht-eilige Anfragen.",
+        en: "Reply within 24 hours. Also for non-urgent requests.",
+      },
+      bookLabel: { de: "Termin", en: "Booking" },
+      bookTitle: { de: "Termin direkt buchen", en: "Book a slot directly" },
+      bookText: {
+        de: "30-Minuten-Beratungsgespräch — Kalender-Link führt Sie in einem Klick zum freien Slot.",
+        en: "30-minute consultation — calendar link drops you in a free slot in one click.",
+      },
+      cta: { de: "Weg wählen", en: "Choose" },
+    },
+    form: {
+      title: { de: "Schreiben Sie uns eine Nachricht", en: "Send us a message" },
+      subtitle: {
+        de: "Vier Felder, DSGVO-Checkbox, fertig. Wir melden uns binnen 24 Stunden.",
+        en: "Four fields, GDPR checkbox, done. We'll get back within 24 hours.",
+      },
+      name: { de: "Ihr Name", en: "Your name" },
+      namePh: { de: "Vor- und Nachname", en: "First and last name" },
+      company: { de: "Firma (optional)", en: "Company (optional)" },
+      companyPh: { de: "Firma GmbH", en: "Acme Corp." },
+      email: { de: "E-Mail-Adresse", en: "Email address" },
+      emailPh: { de: "[email protected]", en: "[email protected]" },
+      message: { de: "Ihre Nachricht", en: "Your message" },
+      messagePh: {
+        de: "Worum geht es? Was möchten Sie erreichen? Welcher Termin passt Ihnen?",
+        en: "What's it about? What do you want to achieve? When works for you?",
+      },
+      consent: {
+        de: "Ich willige ein, dass MOHR & MORE meine Angaben zur Bearbeitung dieser Anfrage gemäß der Datenschutzerklärung verarbeitet. Die Einwilligung kann jederzeit widerrufen werden.",
+        en: "I agree that MOHR & MORE processes my details to handle this request according to the privacy policy. Consent can be withdrawn at any time.",
+      },
+      consentLink: { de: "(Datenschutzerklärung)", en: "(Privacy Policy)" },
+      submit: { de: "Nachricht senden", en: "Send message" },
+      submitting: { de: "Wird gesendet…", en: "Sending…" },
+      success: {
+        de: "Vielen Dank! Wir haben Ihre Nachricht erhalten und melden uns binnen 24 Stunden bei Ihnen.",
+        en: "Thank you! We've received your message and will reply within 24 hours.",
+      },
+      errorGeneric: {
+        de: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut oder rufen Sie uns direkt an.",
+        en: "Something went wrong. Please try again or call us directly.",
+      },
+      errorNetwork: {
+        de: "Server momentan nicht erreichbar. Bitte später erneut versuchen.",
+        en: "Server unreachable right now. Please try again later.",
+      },
+      errorRequired: {
+        de: "Bitte füllen Sie alle Pflichtfelder aus.",
+        en: "Please fill in all required fields.",
+      },
+      errorEmail: {
+        de: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        en: "Please enter a valid email address.",
+      },
+      errorConsent: {
+        de: "Ohne DSGVO-Einwilligung können wir Ihre Anfrage leider nicht bearbeiten.",
+        en: "Without GDPR consent we cannot process your request.",
+      },
+      errorMinLen: {
+        de: "Bitte schreiben Sie mindestens 20 Zeichen in die Nachricht.",
+        en: "Please write at least 20 characters in your message.",
+      },
+    },
+    address: {
+      title: { de: "So finden Sie uns", en: "How to find us" },
+      block: { de: "Adresse & Öffnungszeiten", en: "Address & hours" },
+      street: { de: "Musterstraße 1", en: "1 Sample Street" },
+      postalCity: { de: "12345 Musterstadt, DE", en: "12345 Sample City, DE" },
+      hoursLabel: { de: "Öffnungszeiten", en: "Office hours" },
+      hoursText: { de: "Mo–Fr 8–17 Uhr", en: "Mon–Fri 8 AM–5 PM" },
+      phoneLabel: { de: "Telefon", en: "Phone" },
+      emailLabel: { de: "E-Mail", en: "Email" },
+      mapTitle: { de: "Standort MOHR & MORE auf Google Maps", en: "MOHR & MORE location on Google Maps" },
+    },
+    multiChannel: {
+      title: { de: "Mehrere Wege, ein Ansprechpartner", en: "Multiple channels, one point of contact" },
+      desc: {
+        de: "Wählen Sie den Kanal, der Ihnen am bequemsten ist. Jede Anfrage landet bei derselben Person — versprochen.",
+        en: "Pick the channel that suits you best. Every request lands with the same person — promised.",
+      },
+      phone: { de: "+49 0000 0000000", en: "+49 0000 0000000" },
+      email: { de: "[email protected]", en: "[email protected]" },
+    },
+  },
+  services: {
+    hero: {
+      title: {
+        de: "Leistungen, die Ihr Unternehmen messbar voranbringen.",
+        en: "Services that measurably move your business forward.",
+      },
+      intro: {
+        de: "Von der Strategie über die Umsetzung bis zur laufenden Wartung: Wir digitalisieren Vertrieb und Verwaltung für den Mittelstand — pragmatisch, messbar und ohne Reibungsverluste.",
+        en: "From strategy through implementation to ongoing maintenance: we digitalize sales and administration for mid-market companies — pragmatic, measurable, and friction-free.",
+      },
+      ctaPrimary: {
+        de: "Beratungsgespräch vereinbaren",
+        en: "Book a consultation",
+      },
+      ctaSecondary: {
+        de: "Leistungen ansehen",
+        en: "Browse services",
+      },
+    },
+    cards: {
+      title: {
+        de: "Sechs Leistungen, ein Ziel: Ihr Wachstum.",
+        en: "Six services, one goal: your growth.",
+      },
+      subtitle: {
+        de: "Jede Karte folgt demselben klaren Muster: Problem → Lösung → Ergebnis. Klicken Sie rein, um Details, FAQs und konkrete Lieferergebnisse zu sehen.",
+        en: "Every card follows the same clear pattern: Problem → Solution → Outcome. Click in for details, FAQs, and concrete deliverables.",
+      },
+    },
+    cta: {
+      title: {
+        de: "Bereit, den ersten Schritt zu machen?",
+        en: "Ready to take the first step?",
+      },
+      text: {
+        de: "Vereinbaren Sie ein unverbindliches Erstgespräch. Wir hören zu, analysieren Ihre Situation und schlagen Ihnen die nächsten drei konkreten Schritte vor.",
+        en: "Book a no-obligation initial consultation. We listen, analyze your situation, and propose three concrete next steps.",
+      },
+      button: {
+        de: "Jetzt Beratung anfragen",
+        en: "Request a consultation",
+      },
+    },
+  },
+  serviceDetail: {
+    back: { de: "← Zurück zur Übersicht", en: "← Back to overview" },
+    ctaTitle: {
+      de: "Interesse geweckt?",
+      en: "Interested?",
+    },
+    ctaText: {
+      de: "Vereinbaren Sie ein unverbindliches Erstgespräch. Wir beantworten Ihre Fragen und erstellen ein erstes Konzept.",
+      en: "Book a no-obligation initial consultation. We answer your questions and draft an initial concept.",
+    },
+    ctaButton: {
+      de: "Beratung anfragen",
+      en: "Request a consultation",
+    },
+    faqTitle: {
+      de: "Häufig gestellte Fragen",
+      en: "Frequently asked questions",
+    },
+    benefitsTitle: {
+      de: "Was Sie konkret bekommen",
+      en: "What you concretely get",
+    },
+    problemTitle: { de: "Problem", en: "Problem" },
+    solutionTitle: { de: "Lösung", en: "Solution" },
+    outcomeTitle: { de: "Ergebnis", en: "Outcome" },
+  },
+  referencesPage: {
+    pageLabel: { de: "Referenzen", en: "References" },
+    hero: {
+      title: {
+        de: "Case Studies mit messbaren Ergebnissen.",
+        en: "Case studies with measurable outcomes.",
+      },
+      intro: {
+        de: "Drei Beispiele aus den letzten 18 Monaten — anonymisiert, aber mit echten Zahlen. Filtern Sie nach Branche und lesen Sie, wie wir Herausforderungen in konkrete Resultate verwandelt haben.",
+        en: "Three examples from the last 18 months — anonymized, with real numbers. Filter by industry and see how we turn challenges into measurable results.",
+      },
+    },
+    filter: {
+      label: { de: "Filter", en: "Filter" },
+      searchLabel: {
+        de: "Nach Branche oder Stichwort filtern",
+        en: "Filter by industry or keyword",
+      },
+      searchPh: {
+        de: "z.B. Mittelstand, Handwerk, Workflow …",
+        en: "e.g. SME, crafts, workflow …",
+      },
+      allLabel: { de: "Alle Branchen", en: "All industries" },
+      emptyLabel: {
+        de: "Keine Cases gefunden. Bitte Filter anpassen.",
+        en: "No cases found. Please adjust your filter.",
+      },
+      resetLabel: { de: "Filter zurücksetzen", en: "Reset filter" },
+      resultCount: {
+        de: "{count} Cases",
+        en: "{count} cases",
+      },
+    },
+    statsTitle: {
+      de: "Kennzahlen auf einen Blick",
+      en: "Key metrics at a glance",
+    },
+    readMore: { de: "Case lesen →", en: "Read case →" },
+    ctaTitle: { de: "Ihr Projekt könnte das nächste Case Study sein.", en: "Your project could be the next case study." },
+    ctaText: {
+      de: "Vereinbaren Sie ein unverbindliches Erstgespräch. Wir besprechen Ihre Situation und skizzieren die ersten Schritte.",
+      en: "Book a no-obligation initial consultation. We discuss your situation and outline the first steps.",
+    },
+    ctaButton: { de: "Beratung anfragen", en: "Request a consultation" },
+  },
+  caseDetail: {
+    back: { de: "← Zurück zur Übersicht", en: "← Back to overview" },
+    ctaTitle: { de: "Ähnliche Herausforderung?", en: "Similar challenge?" },
+    ctaText: {
+      de: "Wir besprechen Ihre Situation in einem unverbindlichen Erstgespräch und zeigen Ihnen, welche Schritte wir empfehlen würden.",
+      en: "We'll discuss your situation in a no-obligation initial consultation and show you which steps we would recommend.",
+    },
+    ctaButton: { de: "Beratung anfragen", en: "Request a consultation" },
+    detailsTitle: {
+      de: "Ergebnisse im Detail",
+      en: "Results in detail",
+    },
+    detailsSummary: {
+      de: "Alle Ergebnisse anzeigen",
+      en: "Show all results",
+    },
+    statsTitle: { de: "Kennzahlen", en: "Key metrics" },
+    problemTitle: { de: "Ausgangslage", en: "Starting point" },
+    solutionTitle: { de: "Vorgehen", en: "Approach" },
+    clientLabel: { de: "Kunde", en: "Client" },
+    durationLabel: { de: "Laufzeit", en: "Duration" },
+    branchLabel: { de: "Branche", en: "Industry" },
+  },
+  /**
+   * /ueber-uns (MMB-474, Sub 6 von 8 aus MMB-468)
+   * DE + EN vollständig — wird via useLang() umgeschaltet.
+   */
+  about: {
+    hero: {
+      label: { de: "Über uns", en: "About us" },
+      title: {
+        de: "Menschen, Mission, Meilensteine.",
+        en: "People, Mission, Milestones.",
+      },
+      intro: {
+        de: "MOHR & MORE wurde 2009 in Köln gegründet. Heute sind wir ein Umsetzungspartner für den Mittelstand — mit einem Team aus erfahrenen Köpfen, klaren Werten und einem Track Record, der für sich spricht.",
+        en: "MOHR & MORE was founded in 2009 in Cologne. Today we are an implementation partner for SMEs — with a team of seasoned professionals, clear values and a track record that speaks for itself.",
+      },
+      ctaPrimary: { de: "Kontakt aufnehmen", en: "Get in touch" },
+      ctaSecondary: { de: "Leistungen ansehen", en: "View services" },
+    },
+    intro: {
+      label: { de: "Mission", en: "Mission" },
+      title: {
+        de: "Wir bauen Unternehmen, die wie Software skalieren.",
+        en: "We build companies that scale like software.",
+      },
+      text: {
+        de: "Wir verbinden kaufmännische Realität mit technologischer Umsetzungskraft. Statt Berater-PowerPoint liefern wir lauffähige Lösungen — pragmatisch, messbar und mit einem Team, das mitdenkt. Unser Anspruch: Jedes Projekt verlässt unser Haus mit einer Zahl, die sich verbessert hat.",
+        en: "We combine commercial reality with technological execution power. Instead of consultant PowerPoint, we ship working solutions — pragmatic, measurable and with a team that thinks ahead. Our standard: every project leaves our house with at least one number that has improved.",
+      },
+      meta: {
+        location: {
+          de: "Standort",
+          en: "Location",
+        },
+        founded: {
+          de: "Gegründet",
+          en: "Founded",
+        },
+        focus: {
+          de: "Fokus",
+          en: "Focus",
+        },
+        locationValue: { de: "Köln / NRW", en: "Cologne / NRW" },
+        foundedValue: { de: "2009", en: "2009" },
+        focusValue: {
+          de: "Digitalisierung & Umsetzung für den Mittelstand",
+          en: "Digitalization & implementation for SMEs",
+        },
+      },
+    },
+    team: {
+      label: { de: "Team", en: "Team" },
+      title: {
+        de: "Vier Köpfe, ein System.",
+        en: "Four people, one system.",
+      },
+      subtitle: {
+        de: "Platzhalter-Fotos. Sobald der Kunde echte Teamfotos liefert, werden hier nur die Daten getauscht — die Komponente bleibt unverändert.",
+        en: "Placeholder photos. Once the client delivers real team photos, only the data gets swapped — the component stays unchanged.",
+      },
+    },
+    timeline: {
+      label: { de: "Geschichte", en: "History" },
+      title: {
+        de: "Von 2009 bis heute.",
+        en: "From 2009 to today.",
+      },
+      subtitle: {
+        de: "Sechs Meilensteine auf dem Weg zur Zero-Human Company.",
+        en: "Six milestones on the way to the Zero-Human Company.",
+      },
+    },
+    values: {
+      label: { de: "Werte", en: "Values" },
+      title: {
+        de: "Woran wir uns messen lassen.",
+        en: "What we hold ourselves to.",
+      },
+      subtitle: {
+        de: "Vier Prinzipien, die jedes Projekt prägen — vom ersten Briefing bis zum Go-Live.",
+        en: "Four principles that shape every project — from the first briefing to go-live.",
+      },
+    },
+    cta: {
+      title: {
+        de: "Lust auf eine konkrete Zusammenarbeit?",
+        en: "Ready for a concrete collaboration?",
+      },
+      text: {
+        de: "Vereinbaren Sie ein unverbindliches Erstgespräch. Wir hören zu, sortieren mit Ihnen die Situation und skizzieren die ersten sinnvollen Schritte.",
+        en: "Book a no-obligation initial consultation. We listen, sort out the situation with you and outline the first sensible steps.",
+      },
+      primary: { de: "Kontakt aufnehmen", en: "Get in touch" },
+      secondary: { de: "Leistungen ansehen", en: "View services" },
+    },
+  },
   footer: {
     copyright: { de: "© 2026 MOHR & MORE BUSINESS. All systems operational.", en: "© 2026 MOHR & MORE BUSINESS. All systems operational." },
     impressum: { de: "Impressum", en: "Legal Notice" },
