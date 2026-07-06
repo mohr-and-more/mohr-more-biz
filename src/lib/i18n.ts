@@ -249,6 +249,42 @@ export const translations = {
     ],
     footerMsg: { de: "Dies ist der Unterschied zwischen Erfolg und Misserfolg.", en: "This is the change between success and fail." },
     footerCopy: { de: "© 2026 MOHR & MORE BUSINESS. All systems operational. Zero humans required.", en: "© 2026 MOHR & MORE BUSINESS. All systems operational. Zero humans required." },
+    // MMB-504 — Quota Card (MiniMax-style usage widget, adopted from MiniMax dashboard)
+    quota: {
+      label: { de: "Live-Auslastung", en: "Live usage" },
+      sectionLabel: { de: "Echtzeit-Betriebsdaten", en: "Real-time operations" },
+      sectionTitle: {
+        de: "Wie viel Kapazität unsere Flotte gerade nutzt.",
+        en: "How much capacity our fleet is consuming right now.",
+      },
+      sectionSub: {
+        de: "Snapshot der MiniMax-Coding-Plan-Auslastung (5h-Limit / Wochen-Limit / Video-Bonus) — Adaption des MiniMax-Quota-Panels für das mohr-more.biz Dashboard. Echtzeit-API folgt, sobald die MiniMax-Plattform Cookie-basierte Auth für /coding_plan/remains öffnet (Status-Issue #88). Stand: 2026-07-06 — Build MMB-504 / MMB-506.",
+        en: "Snapshot of the MiniMax Coding Plan usage (5h limit / Weekly limit / Video bonus) — adoption of the MiniMax quota panel for the mohr-more.biz dashboard. Live API will follow once MiniMax opens cookie-based auth for /coding_plan/remains (tracking issue #88). Snapshot date: 2026-07-06 — build MMB-504 / MMB-506.",
+      },
+      rows: [
+        {
+          label: { de: "5h-Fenster", en: "5h window" },
+          sub:   { de: "Reset in 2 Std 17 Min", en: "Resets in 2 hr 17 min" },
+          used: 416,
+          max: 1600,
+          ariaLabel: { de: "5-Stunden-Fenster 416 von 1600 (26 %)", en: "5-hour window 416 of 1600 (26 %)" },
+        },
+        {
+          label: { de: "7d-Fenster", en: "7d window" },
+          sub:   { de: "Reset in 6 Tagen 6 Std", en: "Resets in 6 days 6 hr" },
+          used: 960,
+          max: 8000,
+          ariaLabel: { de: "Wochen-Fenster 960 von 8000 (12 %)", en: "Weekly window 960 of 8000 (12 %)" },
+        },
+        {
+          label: { de: "Video-Bonus", en: "Video bonus" },
+          sub:   { de: "Reset in 6 Std 17 Min", en: "Resets in 6 hr 17 min" },
+          used: 0,
+          max: 3,
+          ariaLabel: { de: "Video-Bonus 0 von 3", en: "Video bonus 0 of 3" },
+        },
+      ],
+    },
   },
   team: {
     heroLabel: { de: "DAS KI-TEAM", en: "THE AI TEAM" },
@@ -630,6 +666,195 @@ export const translations = {
     impressum: { de: "Impressum", en: "Legal Notice" },
     privacy: { de: "Datenschutz", en: "Privacy Policy" },
   },
+  // Sub-Issue 2: MMB-470 — DE-Hauptseite (/)
+  // Neue Geschäftsseite (mohr-more.biz) gem. Web-Optimierungsplan MMB-468.
+  home: {
+    nav: {
+      leistungen: { de: "Leistungen", en: "Services" },
+      vertrauen: { de: "Vertrauen", en: "Trust" },
+      referenzen: { de: "Referenzen", en: "Case Studies" },
+      kontakt: { de: "Kontakt", en: "Contact" },
+      cta: { de: "Beratung anfragen", en: "Request a Consultation" },
+    },
+    hero: {
+      eyebrow: { de: "Beratung · Umsetzung · Wartung in Musterstadt", en: "Consulting · Execution · Maintenance in Sample City" },
+      titleLead: { de: "Wir bringen Ihr Geschäft", en: "We move your business" },
+      titleAccent: { de: "strukturierter voran.", en: "forward — with structure." },
+      subtitle: {
+        de: "MOHR & MORE begleitet kleine und mittelständische Unternehmen in Musterstadt und Umgebung mit klarer Beratung, sauberer Umsetzung und verlässlicher Wartung. Drei Wege. Eine Adresse. Antwort innerhalb von 24 Stunden.",
+        en: "MOHR & MORE helps small and mid-sized businesses in Sample City and beyond with clear consulting, clean execution, and reliable maintenance. Three paths. One address. Reply within 24 hours.",
+      },
+      ctaPrimary: { de: "Beratungsgespräch vereinbaren", en: "Book a consultation" },
+      ctaSecondary: { de: "Leistungen ansehen", en: "View services" },
+      trust1: { de: "DSGVO-konform", en: "GDPR-compliant" },
+      trust2: { de: "Antwort binnen 24 h", en: "Reply within 24 h" },
+      trust3: { de: "Lokale Verankerung", en: "Locally rooted" },
+      heroAlt: { de: "Beratung und Umsetzung für KMU in Musterstadt — MOHR & MORE", en: "Consulting and execution for SMEs in Sample City — MOHR & MORE" },
+    },
+    logoBar: {
+      label: { de: "Vertrauen von", en: "Trusted by" },
+    },
+    testimonial: {
+      title: { de: "Kundenstimme", en: "Customer voice" },
+      quote: {
+        de: "Mit MOHR & MORE haben wir unseren Verwaltungsaufwand halbiert und gleichzeitig die Kundenzufriedenheit um 18 % gesteigert.",
+        en: "MOHR & MORE cut our admin workload in half while lifting customer satisfaction by 18%.",
+      },
+      name: { de: "Anna Beispiel", en: "Anna Sample" },
+      role: { de: "Geschäftsführerin · Beispiel GmbH", en: "Managing Director · Sample Ltd." },
+      initials: { de: "AB", en: "AS" },
+    },
+    services: {
+      label: { de: "Leistungen — Vorschau", en: "Services — Preview" },
+      title: { de: "Drei Wege zu mehr Klarheit, Geschwindigkeit und Stabilität.", en: "Three paths to more clarity, speed, and stability." },
+      intro: {
+        de: "Jede Karte folgt demselben Muster: Problem → Lösung → Ergebnis. Klicken Sie weiter, um die Leistung im Detail zu sehen — oder sprechen Sie uns direkt an.",
+        en: "Each card follows the same structure: Problem → Solution → Outcome. Click through to see the service in detail — or talk to us directly.",
+      },
+      problemLabel: { de: "Problem", en: "Problem" },
+      solutionLabel: { de: "Lösung", en: "Solution" },
+      resultLabel: { de: "Ergebnis", en: "Outcome" },
+      cta: { de: "Mehr erfahren", en: "Learn more" },
+      items: {
+        beratung: {
+          title: { de: "Beratung", en: "Consulting" },
+          problem: { de: "Unklare Prozesse, wachsende Komplexität, niemand mit Überblick.", en: "Unclear processes, growing complexity, no one with the full picture." },
+          solution: { de: "Wir analysieren, strukturieren und priorisieren mit klarem Plan und festen Terminen.", en: "We analyze, structure, and prioritize — with a clear plan and fixed dates." },
+          result: { de: "Ein priorisierter Maßnahmenplan, mit dem Sie sofort entscheiden können.", en: "A prioritized action plan you can act on immediately." },
+        },
+        umsetzung: {
+          title: { de: "Umsetzung", en: "Execution" },
+          problem: { de: "Ideen bleiben liegen, weil Kapazität, Wissen oder Koordination fehlen.", en: "Ideas stall because capacity, knowledge, or coordination is missing." },
+          solution: { de: "Wir setzen um — Website, Tooling, Automatisierung — mit einem festen Team.", en: "We execute — website, tooling, automation — with a fixed team." },
+          result: { de: "Ein fertiges, getestetes Ergebnis, das läuft und gemessen wird.", en: "A finished, tested result that runs and gets measured." },
+        },
+        wartung: {
+          title: { de: "Wartung", en: "Maintenance" },
+          problem: { de: "Was einmal lief, läuft irgendwann nicht mehr. Updates, Fehler, Sicherheit.", en: "What once worked eventually stops. Updates, errors, security." },
+          solution: { de: "Wir beobachten, pflegen, sichern und verbessern — vertraglich festgelegt.", en: "We monitor, maintain, secure, and improve — under a fixed contract." },
+          result: { de: "Planbare Kosten, stabile Systeme, weniger Notfälle.", en: "Predictable cost, stable systems, fewer emergencies." },
+        },
+      },
+    },
+    trust: {
+      label: { de: "Vertrauen — in Zahlen", en: "Trust — in numbers" },
+      title: { de: "Fakten, die man nachprüfen kann.", en: "Facts you can verify." },
+      items: [
+        { value: "120+", label: { de: "Projekte abgeschlossen", en: "Projects delivered" } },
+        { value: "98 %", label: { de: "Kunden-Retention", en: "Client retention" } },
+        { value: "24 h", label: { de: "Antwortzeit", en: "Response time" } },
+        { value: "15+", label: { de: "Jahre Erfahrung", en: "Years of experience" } },
+      ],
+    },
+    footer: {
+      brand: {
+        de: "Beratung, Umsetzung und Wartung für kleine und mittelständische Unternehmen in Musterstadt und Umgebung.",
+        en: "Consulting, execution, and maintenance for small and mid-sized businesses in Sample City and beyond.",
+      },
+      col1: { de: "Leistungen", en: "Services" },
+      col1Item1: { de: "Übersicht", en: "Overview" },
+      col1Item2: { de: "Referenzen", en: "Case studies" },
+      col1Item3: { de: "Über uns", en: "About us" },
+      col1Item4: { de: "Blog", en: "Blog" },
+      col2: { de: "Rechtliches", en: "Legal" },
+      col2Item1: { de: "Impressum", en: "Legal notice" },
+      col2Item2: { de: "Datenschutz", en: "Privacy policy" },
+      col2Item3: { de: "AGB", en: "Terms" },
+      col3: { de: "Kontakt", en: "Contact" },
+      col3Item3: { de: "Kontaktformular", en: "Contact form" },
+      rights: { de: "Alle Rechte vorbehalten.", en: "All rights reserved." },
+      impressum: { de: "Impressum", en: "Legal notice" },
+      privacy: { de: "Datenschutz", en: "Privacy" },
+      agb: { de: "AGB", en: "Terms" },
+    },
+  },
+
+  // Sub-Issue 7: /blog (DE) + globale Komponenten
+  blog: {
+    navLabel:       { de: "Blog",        en: "Blog" },
+    pageTitle:      { de: "Blog — MOHR & MORE", en: "Blog — MOHR & MORE" },
+    pageDesc: {
+      de: "Vertriebsautomatisierung, Prozessoptimierung und Digitalisierung für KMU. Praxiserfahrung statt Theorie.",
+      en: "Sales automation, process optimization and digitization for SMEs. Real-world experience instead of theory.",
+    },
+    pillar: {
+      label:        { de: "Themen-Cluster", en: "Topic Cluster" },
+      title:        { de: "Vertriebsautomatisierung für KMU", en: "Sales Automation for SMEs" },
+      description: {
+        de: "Wie kleine und mittelständische Unternehmen ohne großen IT-Aufwand Vertriebsprozesse automatisieren, qualifizierte Leads generieren und den Umsatz pro Mitarbeiter steigern — ohne dafür ein großes CRM-Projekt starten zu müssen.",
+        en: "How small and medium-sized businesses automate sales processes, generate qualified leads and increase revenue per employee without a major IT project.",
+      },
+      cta:          { de: "Themen-Cluster lesen", en: "Read the cluster" },
+    },
+    relatedLabel:   { de: "Weitere Artikel",       en: "More articles" },
+    readTime:      { de: "Min. Lesezeit",         en: "min read" },
+    cards: [
+      {
+        slug: "crm-einfach-gemacht",
+        tag:  { de: "Vertrieb", en: "Sales" },
+        title:{ de: "CRM einfach gemacht: 5 Schritte zur automatisierten Lead-Pflege", en: "CRM made easy: 5 steps to automated lead nurturing" },
+        desc: {
+          de: "Viele KMU scheuen CRM-Systeme wegen der Komplexität. Diese Anleitung zeigt, wie man mit einfachen Mitteln eine funktionierende Lead-Pipeline aufbaut.",
+          en: "Many SMEs shy away from CRM systems due to complexity. This guide shows how to build a working lead pipeline with simple means.",
+        },
+        date:{ de: "8. Juli 2026", en: "July 8, 2026" },
+      },
+      {
+        slug: "ki-im-verkauf",
+        tag:  { de: "KI", en: "AI" },
+        title:{ de: "KI im Verkauf: Was funktioniert wirklich?", en: "AI in Sales: What actually works?" },
+        desc: {
+          de: "Ein ehrlicher Blick auf den Einsatz von KI im Vertrieb — zwischen Hype und echter Effizienzsteigerung.",
+          en: "An honest look at using AI in sales — between hype and real efficiency gains.",
+        },
+        date:{ de: "1. Juli 2026", en: "July 1, 2026" },
+      },
+      {
+        slug: "prozesoptimierung-handwerk",
+        tag:  { de: "Prozesse", en: "Processes" },
+        title:{ de: "Prozessoptimierung im Handwerk: Ein Praxisbericht", en: "Process optimization in trades: A practical report" },
+        desc: {
+          de: "Wie ein mittelständischer Handwerksbetrieb seine Auftragsplanung von Excel auf ein strukturiertes System umgestellt hat.",
+          en: "How a medium-sized trade business switched from Excel to a structured system for order planning.",
+        },
+        date:{ de: "24. Juni 2026", en: "June 24, 2026" },
+      },
+      {
+        slug: "dsgvo-webseiten-checkliste",
+        tag:  { de: "DSGVO", en: "GDPR" },
+        title:{ de: "DSGVO-konforme Website: Die vollständige Checkliste", en: "GDPR-compliant website: The complete checklist" },
+        desc: {
+          de: "Was wirklich auf einer Webseite stimmen muss, damit sie DSGVO-konform ist — ohne teure Berater.",
+          en: "What really needs to be right on a website to be GDPR-compliant — without expensive consultants.",
+        },
+        date:{ de: "17. Juni 2026", en: "June 17, 2026" },
+      },
+    ],
+    // Detail page
+    detail: {
+      backLabel:     { de: "Zurück zum Blog",    en: "Back to Blog" },
+      tocLabel:      { de: "Inhalt",              en: "Contents" },
+      shareLabel:    { de: "Teilen",              en: "Share" },
+      relatedLabel:  { de: "Ähnliche Artikel",    en: "Related articles" },
+    },
+    // 404
+    notFound: {
+      title:         { de: "Seite nicht gefunden", en: "Page not found" },
+      subtitle: {
+        de: "Diese Seite existiert nicht oder wurde verschoben.",
+        en: "This page does not exist or has been moved.",
+      },
+      searchLabel:   { de: "Seite suchen …",     en: "Search page …" },
+      homeLink:      { de: "Zur Startseite",      en: "Go to homepage" },
+      blogLink:      { de: "Zum Blog",             en: "Go to Blog" },
+      contactLink:   { de: "Kontakt aufnehmen",    en: "Get in contact" },
+      contactDesc: {
+        de: "Sie haben nicht gefunden, was Sie suchen?",
+        en: "Did not find what you were looking for?",
+      },
+    },
+  },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;

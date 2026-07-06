@@ -3,6 +3,7 @@
 import { useLang } from "@/components/i18n-provider";
 import { translations } from "@/lib/i18n";
 import { useRef, useEffect } from "react";
+import { QuotaCard } from "@/components/quota-card";
 
 function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -78,6 +79,45 @@ export function ZeroHumansPage() {
             ))}
           </div>
         </Reveal>
+      </section>
+
+      {/* ── LIVE QUOTA (MMB-504) — adopted from MiniMax dashboard ── */}
+      <section className="py-20" id="live-quota">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <Reveal>
+            <div className="label mb-4" style={{ color: "var(--accent)" }}>
+              {t.quota.sectionLabel[lang]}
+            </div>
+            <h2 className="mb-4">{t.quota.sectionTitle[lang]}</h2>
+            <p className="mx-auto mb-12 max-w-[65ch]" style={{ color: "var(--muted)", fontSize: "1.1rem" }}>
+              {t.quota.sectionSub[lang]}
+            </p>
+          </Reveal>
+          <Reveal>
+            <QuotaCard
+              title={t.quota.label[lang]}
+              rows={t.quota.rows.map((row) => {
+                const r: {
+                  label: string;
+                  sub?: string;
+                  percent?: number;
+                  used?: number;
+                  max?: number;
+                  ariaLabel?: string;
+                } = { label: row.label[lang] };
+                if (row.sub) r.sub = row.sub[lang];
+                const maybePercent = (row as { percent?: unknown }).percent;
+                const maybeUsed = (row as { used?: unknown }).used;
+                const maybeMax = (row as { max?: unknown }).max;
+                if (typeof maybePercent === "number") r.percent = maybePercent;
+                if (typeof maybeUsed === "number") r.used = maybeUsed;
+                if (typeof maybeMax === "number") r.max = maybeMax;
+                if (row.ariaLabel) r.ariaLabel = row.ariaLabel[lang];
+                return r;
+              })}
+            />
+          </Reveal>
+        </div>
       </section>
 
       {/* ── POWER GRID ── */}
