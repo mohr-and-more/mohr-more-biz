@@ -33,6 +33,7 @@ import {
 type LoadState =
   | { kind: "loading" }
   | { kind: "ready"; data: SloData }
+  | { kind: "gated" }
   | { kind: "error"; message: string };
 
 const TARGET_SLO = 90;
@@ -50,7 +51,18 @@ export function SloReport() {
       } catch (err) {
         if (!active) return;
         const message = err instanceof Error ? err.message : "Unbekannter Fehler";
-        setState({ kind: "error", message });
+        // MMB-513: /api/slo sits behind the same mmb_dash cookie gate as
+        // /api/issues and /api/quota. When the browser hasn't unlocked the
+        // dashboard yet the upstream returns HTTP 401; mirror the outer
+        // DashboardView behaviour and route to the "gated" branch instead of
+        // the generic "SLO-Snapshot nicht verfügbar" error message. Cloudflare
+        // Pages can also surface a fresh visitor as 403 before the worker is
+        // even invoked, so we treat both as the same "please unlock" signal.
+        if (/\bstatus\s*40[13]\b/i.test(message)) {
+          setState({ kind: "gated" });
+        } else {
+          setState({ kind: "error", message });
+        }
       }
     })();
     return () => {
@@ -70,6 +82,46 @@ export function SloReport() {
     );
   }
 
+  // MMB-513: when the dashboard cookie gate is in place but no mmb_dash cookie
+  // has been issued yet, the underlying SLO API returns HTTP 401. Render a
+  // compact pointer to the outer DashboardView unlock form instead of the
+  // generic "SLO-Snapshot nicht verfügbar" error: the user simply needs to
+  // unlock the dashboard once. We do NOT duplicate the unlock form here.
+  if (state.kind === "gated") {
+    return (
+      <section className="slo-wrap slo-wrap--gated" role="status">
+        <div className="slo-head">
+          <span className="slo-h">Stabilitäts-SLO</span>
+        </div>
+        <p className="slo-gated-msg">
+          SLO-Snapshot wartet auf Dashboard-Entsperrung.
+        </p>
+        <p className="slo-gated-hint">
+          Bitte oben das Dashboard mit dem Zugriffsschlüssel entsperren — danach
+          wird der SLO-Snapshot automatisch geladen.{" "}
+          <a
+            className="slo-gated-link"
+            href="/dashboard#unlock"
+            onClick={(e) => {
+              e.preventDefault();
+              const root = document.querySelector(".dash-state-gated");
+              if (root) {
+                root.scrollIntoView({ block: "center" });
+                const input = root.querySelector('input[type="password"]');
+                if (input instanceof HTMLInputElement) input.focus();
+              } else {
+                location.hash = "unlock";
+              }
+            }}
+          >
+            Zum Entsperren
+          </a>
+          .
+        </p>
+      </section>
+    );
+  }
+
   if (state.kind === "error") {
     return (
       <section className="slo-wrap slo-wrap--error" role="alert">
@@ -85,13 +137,17 @@ export function SloReport() {
     );
   }
 
+  if (state.kind !== "ready") {
+    // Defensive fallthrough: should be unreachable because loading/gated/error
+    // branches all return above. Keep it visible during dev so we notice.
+    return null;
+  }
   return <SloReady data={state.data} />;
 }
 
 function SloReady({ data }: { data: SloData }) {
   const pct24h = data.overall24h?.success_pct ?? data.headline?.success_pct ?? null;
   const level = sloLevel(pct24h);
-  const levelMeta = QUOTA_LEVEL_META[level];
   const regression = data.regression;
 
   return (

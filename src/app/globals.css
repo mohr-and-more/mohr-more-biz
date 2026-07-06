@@ -1672,9 +1672,16 @@ footer { padding: 0 0 var(--space-10); }
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+.slo-wrap--gated {
+  border-color: rgba(234, 179, 8, 0.4);
+  border-style: dashed;
+}
+
 .slo-loading,
 .slo-error-msg,
-.slo-error-hint {
+.slo-error-hint,
+.slo-gated-msg,
+.slo-gated-hint {
   margin: 0;
   color: var(--muted, #9ca3af);
   font-size: 0.9rem;
@@ -1682,6 +1689,20 @@ footer { padding: 0 0 var(--space-10); }
 
 .slo-error-msg {
   color: #fca5a5;
+}
+
+.slo-gated-msg {
+  color: #fde68a;
+}
+
+.slo-gated-link {
+  color: var(--accent, #f5b400);
+  text-decoration: underline;
+}
+
+.slo-gated-link:hover,
+.slo-gated-link:focus-visible {
+  color: #fde68a;
 }
 
 .slo-head {
