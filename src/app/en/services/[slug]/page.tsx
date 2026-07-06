@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EnServiceDetailPage } from "@/components/en-service-detail-page";
+import { ServiceDetailPage as EnServiceDetailPage } from "../../../leistungen/[slug]/slug-page";
 import { DETAIL_SLUGS, SITE, getService } from "@/data/services";
 import type { ServiceSlug } from "@/data/services";
 import "../../../design-system.css";
