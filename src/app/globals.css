@@ -1375,6 +1375,64 @@ footer { padding: 0 0 var(--space-10); }
   text-align: right;
 }
 
+/* MMB-514 — lockout banner shown when GLM 7d >= 100% */
+.quota-lockout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3) 0;
+  padding: 10px 14px;
+  border-radius: var(--radius, 8px);
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+.quota-lockout strong {
+  color: #ef4444;
+  font-weight: 700;
+}
+.quota-lockout-fallback {
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* MMB-514 — overage indicator on the progress bar (striped extension past 100%) */
+.quota-bar-row--over .quota-bar-track {
+  /* Let the overage stripe overflow visibly beyond the rounded cap */
+  overflow: visible;
+}
+.quota-bar-over {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  height: 100%;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  animation: quota-bar-over-pulse 2.4s ease-in-out infinite;
+}
+.quota-bar-track { position: relative; }
+@keyframes quota-bar-over-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+
+/* MMB-514 — emphasise the percentage number and add "over by X" subtext */
+.quota-bar-pct-num {
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.quota-bar-pct-over {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ef4444;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
 .quota-card-extra {
   font-size: var(--text-xs);
   color: var(--text-faint);

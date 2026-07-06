@@ -115,6 +115,10 @@ export function QuotaReport() {
 function DualProviderPanel({ glm, minimax }: { glm: ProviderQuota; minimax: ProviderQuota }) {
   const worstGLM = worstLevel(glm.latest.pct_5h, glm.latest.pct_7d);
   const worstMiniMax = worstLevel(minimax.latest.pct_5h, minimax.latest.pct_7d);
+  // MMB-514: explicit lockout banner when GLM 7d is over quota so the
+  // operator sees the operational impact (GLM flatrate blocked, fallback
+  // active) instead of just a red bar that is easy to miss.
+  const glmLocked = glm.latest.pct_7d >= 100;
 
   return (
     <section className="quota" aria-label="GLM + MiniMax Quota-Auslastung">
@@ -131,6 +135,17 @@ function DualProviderPanel({ glm, minimax }: { glm: ProviderQuota; minimax: Prov
           <ProviderBadge provider="minimax" worst={worstMiniMax} />
         </div>
       </header>
+
+      {glmLocked ? (
+        <div className="quota-lockout" role="status" aria-live="polite">
+          <strong>GLM gesperrt.</strong>{" "}
+          7d-Fenster bei {glm.latest.pct_7d.toFixed(1)} % (Limit 8000) — z.ai
+          Flatrate blockiert Anfragen bis das Fenster rolliert.{" "}
+          <span className="quota-lockout-fallback">
+            Fallback aktiv: MiniMax-M3 → M2.7 → GLM-Kaskade gemäß MMB-445.
+          </span>
+        </div>
+      ) : null}
 
       {/* Side-by-side cards */}
       <div className="quota-dual-grid">
@@ -222,16 +237,31 @@ function QuotaBar({
   level: "green" | "yellow" | "red";
 }) {
   const meta = QUOTA_LEVEL_META[level];
+  // MMB-514: was `Math.min(100, pct)` which clipped the bar at 100% while
+  // the number beside it showed the real (over-quota) value. Visually
+  // inconsistent and confusing. Now: bar always shows the real percentage,
+  // capped at 100 for layout; if pct > 100 we add a striped "overage"
+  // segment so the eye can see "you went past the limit".
+  const isOver = pct > 100;
   const fillPct = Math.min(100, pct);
+  const overPct = isOver ? Math.min(50, pct - 100) : 0; // cap overage indicator at +50
+  const overPrompts = isOver ? Math.round(used - limit) : 0;
   return (
-    <div className="quota-bar-row">
+    <div className={`quota-bar-row${isOver ? " quota-bar-row--over" : ""}`}>
       <div className="quota-bar-label">
         <span>{label}</span>
         <span className="quota-bar-value" style={{ color: meta.color }}>
           {used}/{limit}
         </span>
       </div>
-      <div className="quota-bar-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div
+        className="quota-bar-track"
+        role="progressbar"
+        aria-valuenow={Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={200}
+        aria-label={`${label}: ${pct.toFixed(1)}% of ${limit} prompts used`}
+      >
         <div
           className="quota-bar-fill"
           style={{
@@ -239,9 +269,27 @@ function QuotaBar({
             background: meta.color,
           }}
         />
+        {isOver ? (
+          <div
+            className="quota-bar-over"
+            style={{
+              width: `${overPct}%`,
+              background: `repeating-linear-gradient(45deg, ${meta.color} 0 6px, rgba(239,68,68,0.85) 6px 12px)`,
+              borderLeft: `2px solid ${meta.color}`,
+            }}
+            aria-hidden="true"
+          />
+        ) : null}
       </div>
       <div className="quota-bar-pct" style={{ color: meta.color }}>
-        {pct.toFixed(1)}%
+        {isOver ? (
+          <>
+            <span className="quota-bar-pct-num">{pct.toFixed(1)}%</span>
+            <span className="quota-bar-pct-over">over by {overPrompts}</span>
+          </>
+        ) : (
+          <span className="quota-bar-pct-num">{pct.toFixed(1)}%</span>
+        )}
       </div>
     </div>
   );
