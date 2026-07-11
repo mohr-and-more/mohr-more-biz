@@ -475,10 +475,10 @@ export function Footer() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <p className="font-mono text-[0.7rem] uppercase tracking-wider text-[#444]">{t.copyright[lang]}</p>
         <div className="flex gap-6">
-          <a href="#" className="font-mono text-[0.7rem] text-[#555] no-underline hover:text-[var(--text-secondary)]">
+          <a href={lang === 'de' ? '/impressum' : '/en/legal'} className="font-mono text-[0.7rem] text-[#555] no-underline hover:text-[var(--text-secondary)]">
             {t.impressum[lang]}
           </a>
-          <a href="#" className="font-mono text-[0.7rem] text-[#555] no-underline hover:text-[var(--text-secondary)]">
+          <a href={lang === 'de' ? '/datenschutz' : '/en/privacy'} className="font-mono text-[0.7rem] text-[#555] no-underline hover:text-[var(--text-secondary)]">
             {t.privacy[lang]}
           </a>
         </div>
