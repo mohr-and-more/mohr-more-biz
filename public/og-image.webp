@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#050505"/>
+      <stop offset="50%" style="stop-color:#0d0d12"/>
+      <stop offset="100%" style="stop-color:#12121a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#9ff8f2"/>
+      <stop offset="50%" style="stop-color:#8fc6ff"/>
+      <stop offset="100%" style="stop-color:#c7b2ff"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Subtle grid pattern -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="0" x2="1200" y2="630"/>
+    <line x1="1200" y1="0" x2="0" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+  </g>
+  
+  <!-- Accent line -->
+  <rect x="80" y="180" width="80" height="4" fill="url(#accent)"/>
+  
+  <!-- Company name -->
+  <text x="80" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#ffffff">
+    MOHR &amp; MORE
+  </text>
+  
+  <!-- Tagline -->
+  <text x="80" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#9ff8f2" letter-spacing="2">
+    BUSINESS
+  </text>
+  
+  <!-- Description -->
+  <text x="80" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#888" font-weight="400">
+    Zero-Human Company
+  </text>
+  <text x="80" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#666" font-weight="400">
+    272 KI-Agenten · 24/7/365
+  </text>
+  
+  <!-- Stats bar -->
+  <rect x="80" y="500" width="300" height="60" rx="8" fill="#121216"/>
+  <text x="100" y="538" font-family="ui-monospace, monospace" font-size="20" fill="#9ff8f2">272</text>
+  <text x="170" y="538" font-family="ui-monospace, monospace" font-size="14" fill="#666">Agenten</text>
+  
+  <rect x="420" y="500" width="300" height="60" rx="8" fill="#121216"/>
+  <text x="440" y="538" font-family="ui-monospace, monospace" font-size="20" fill="#9ff8f2">5</text>
+  <text x="510" y="538" font-family="ui-monospace, monospace" font-size="14" fill="#666">Ebenen</text>
+  
+  <rect x="760" y="500" width="300" height="60" rx="8" fill="#121216"/>
+  <text x="780" y="538" font-family="ui-monospace, monospace" font-size="20" fill="#9ff8f2">24/7</text>
+  <text x="880" y="538" font-family="ui-monospace, monospace" font-size="14" fill="#666">Operativ</text>
+  
+  <!-- Decorative elements -->
+  <rect x="1100" y="80" width="60" height="60" fill="none" stroke="#9ff8f2" stroke-width="2" opacity="0.5"/>
+  <rect x="1115" y="95" width="30" height="30" fill="#9ff8f2" opacity="0.3"/>
+</svg>
