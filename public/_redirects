@@ -1,4 +1,2 @@
-/** @type {import('next').NextConfig} */
-
-# Cloudflare Pages — SPA fallback is not needed for static export
-# All routes are handled by the static HTML files
+/ueber-uns	/de/ueber-uns	302
+/en/imprint	/en/legal	302
