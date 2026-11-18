@@ -77,12 +77,18 @@ jobs:
             | jq -c '{success,errors,messages,domain:{name:.result.name,status:.result.status}}'
           echo "::endgroup::"
 
-          echo "::group::point dns record at ${TARGET}"
-          BODY="{\"type\":\"CNAME\",\"name\":\"${HOST}\",\"content\":\"${TARGET}\",\"proxied\":true,\"ttl\":1}"
-          if [ -n "${REC_ID}" ]; then
-            api PATCH "/zones/${ZONE_ID}/dns_records/${REC_ID}" "${BODY}" | jq -c '{success,errors,record:{type:.result.type,content:.result.content,proxied:.result.proxied}}'
+          echo "::group::ensure dns record points at ${TARGET}"
+          CURRENT=$(echo "${RECS}" | jq -r '.result[0] | "\(.type)|\(.content)|\(.proxied)" // empty')
+          if [ "${CURRENT}" = "CNAME|${TARGET}|true" ]; then
+            echo "record already CNAME -> ${TARGET} (proxied), no dns change needed"
+          elif [ -n "${REC_ID}" ]; then
+            api PATCH "/zones/${ZONE_ID}/dns_records/${REC_ID}" \
+              "{\"type\":\"CNAME\",\"name\":\"${HOST}\",\"content\":\"${TARGET}\",\"proxied\":true,\"ttl\":1}" \
+              | jq -c '{success,errors,record:{type:.result.type,content:.result.content,proxied:.result.proxied}}'
           else
-            api POST "/zones/${ZONE_ID}/dns_records" "${BODY}" | jq -c '{success,errors,record:{type:.result.type,content:.result.content,proxied:.result.proxied}}'
+            api POST "/zones/${ZONE_ID}/dns_records" \
+              "{\"type\":\"CNAME\",\"name\":\"${HOST}\",\"content\":\"${TARGET}\",\"proxied\":true,\"ttl\":1}" \
+              | jq -c '{success,errors,record:{type:.result.type,content:.result.content,proxied:.result.proxied}}'
           fi
           echo "::endgroup::"
 
@@ -90,7 +96,7 @@ jobs:
           APEX_TITLE=$(curl -sS --max-time 20 "https://${ZONE_NAME}/" | grep -o '<title>[^<]*' | head -1 || true)
           echo "apex title: ${APEX_TITLE}"
           WWW_CODE=""
-          for i in $(seq 1 12); do
+          for i in $(seq 1 24); do
             WWW_CODE=$(curl -sS -o /tmp/www.html -w '%{http_code}' --max-time 20 "https://${HOST}/" || echo "curl-error")
             echo "attempt ${i}: https://${HOST}/ -> ${WWW_CODE}"
             [ "${WWW_CODE}" = "200" ] && break
@@ -103,4 +109,9 @@ jobs:
           else
             echo "RESULT: www still not serving the apex page (status ${WWW_CODE})."
           fi
+          echo "::endgroup::"
+
+          echo "::group::final project domains"
+          api GET "/accounts/${CF_ACCOUNT}/pages/projects/${PROJECT}" \
+            | jq -c '.result.domains[]? | {name,status:.status,verification_data:.verification_data.status}'
           echo "::endgroup::"
