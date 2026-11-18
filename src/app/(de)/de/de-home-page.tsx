@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * /de/ — DE-Hauptseite (MMB-470, Sub 2 von 8 aus MMB-468)
  *
@@ -278,7 +280,7 @@ function FooterAnker() {
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "var(--mm-space-2)" }}>
               <li><a href="/ueber-uns">Über uns</a></li>
               <li><a href="/referenzen">Referenzen</a></li>
-              <li><a href="/blog">Blog</a></li>
+              <li><Link href="/blog">Blog</Link></li>
             </ul>
           </div>
           <div>

@@ -64,7 +64,7 @@ export function BlogPage() {
               >
                 {/* Tags */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                  {post.tags.slice(0, 2).map((tag) => (
+                  {post.tags[lang].slice(0, 2).map((tag) => (
                     <span key={tag} style={{
                       fontSize: 11,
                       fontWeight: 600,
@@ -92,7 +92,7 @@ export function BlogPage() {
                     color: "inherit",
                     textDecoration: "none",
                   }}>
-                    {lang === "de" ? post.title : post.titleEn}
+                    {post.locales[lang].title}
                   </Link>
                 </h2>
 
@@ -103,7 +103,7 @@ export function BlogPage() {
                   lineHeight: 1.65,
                   margin: "0 0 16px",
                 }}>
-                  {lang === "de" ? post.excerpt : post.excerptEn}
+                  {post.locales[lang].excerpt}
                 </p>
 
                 {/* Meta */}
@@ -119,6 +119,21 @@ export function BlogPage() {
                   <span>{date}</span>
                   <span>&middot;</span>
                   <span>{post.readTime} min</span>
+                </div>
+
+                {/* Detail link */}
+                <div style={{ marginTop: 16 }}>
+                  <Link
+                    href={`/${lang === "de" ? "blog" : "en/blog"}/${post.slug}`}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "var(--mm-color-primary, #00736F)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {lang === "de" ? "Artikel lesen →" : "Read article →"}
+                  </Link>
                 </div>
               </article>
             );

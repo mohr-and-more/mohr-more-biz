@@ -68,7 +68,7 @@ export default function DesignSystemPage() {
                 <li><a href="/leistungen">Leistungen</a></li>
                 <li><a href="/referenzen">Referenzen</a></li>
                 <li><a href="/ueber-uns">Über uns</a></li>
-                <li><a href="/blog">Blog</a></li>
+                <li><Link href="/blog">Blog</Link></li>
                 <li><a href="/kontakt">Kontakt</a></li>
               </ul>
               <input type="search" className="mm-nav-search" placeholder="Suche…" aria-label="Suche" />
@@ -300,7 +300,7 @@ export default function DesignSystemPage() {
                 <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "var(--mm-space-2)" }}>
                   <li><a href="/ueber-uns">Über uns</a></li>
                   <li><a href="/referenzen">Referenzen</a></li>
-                  <li><a href="/blog">Blog</a></li>
+                  <li><Link href="/blog">Blog</Link></li>
                 </ul>
               </div>
               <div>

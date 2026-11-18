@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/data/services";
+import { BLOG_POSTS } from "@/data/blog";
 
 /**
  * /sitemap.xml — XML sitemap for mohr-more.biz (MMB-468 / Sub 8)
@@ -59,6 +60,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE.url}/en/references/mittelstand`, ...monthly(0.7) },
     { url: `${SITE.url}/en/references/handwerk`, ...monthly(0.7) },
     { url: `${SITE.url}/en/references/logistik`, ...monthly(0.7) },
+
+    // Blog — Übersichten
+    { url: `${SITE.url}/blog`, ...monthly(0.8) },
+    { url: `${SITE.url}/en/blog`, ...monthly(0.8) },
+
+    // Blog — Artikel (DE + EN, mit wechselseitigen Sprachversionen)
+    ...BLOG_POSTS.map((post) => ({
+      url: `${SITE.url}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+      alternates: {
+        languages: {
+          de: `${SITE.url}/blog/${post.slug}`,
+          en: `${SITE.url}/en/blog/${post.slug}`,
+        },
+      },
+    })),
+    ...BLOG_POSTS.map((post) => ({
+      url: `${SITE.url}/en/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+      alternates: {
+        languages: {
+          de: `${SITE.url}/blog/${post.slug}`,
+          en: `${SITE.url}/en/blog/${post.slug}`,
+        },
+      },
+    })),
 
     // Brand pages (DE-only — no EN mirror yet)
     { url: `${SITE.url}/zero-humans`, ...monthly(0.6) },
