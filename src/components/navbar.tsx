@@ -121,10 +121,16 @@ export function Navbar() {
         transform: hidden ? "translateY(-100%)" : "translateY(0)",
       }}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* Horizontal padding via style: the global reset in globals.css sets `padding: 0` on
+          every element and overrides Tailwind padding utilities, which left the header flush
+          against the viewport edges. */}
+      <div
+        className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4"
+        style={{ paddingInline: "clamp(1rem, 1.5vw, 1.5rem)" }}
+      >
         <a
           href={lang === "en" ? "/en" : "/"}
-          className="flex items-center gap-3 no-underline"
+          className="flex min-w-0 items-center gap-3 no-underline md:shrink-0"
           aria-label="MOHR & MORE Startseite"
         >
           <LogoIcon />
@@ -132,28 +138,28 @@ export function Navbar() {
             <strong className="font-heading text-sm font-bold tracking-tight" style={{ letterSpacing: "-0.02em" }}>
               MOHR &amp; MORE
             </strong>
-            <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>
+            <span className="whitespace-normal font-mono text-[0.62rem] uppercase tracking-[0.16em] md:whitespace-nowrap" style={{ color: "var(--text-faint)" }}>
               One Human. One AI. One Company.
             </span>
           </span>
         </a>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden min-w-0 items-center gap-x-3 xl:flex 2xl:gap-x-6">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="nav-link text-sm text-muted hover:text-text">
+            <a key={l.href} href={l.href} className="nav-link whitespace-nowrap text-sm text-muted hover:text-text">
               {l.label}
             </a>
           ))}
-          <a href={lang === "en" ? "/en#kontakt" : "/#kontakt"} className="nav-cta">
+          <a href={lang === "en" ? "/en#kontakt" : "/#kontakt"} className="nav-cta whitespace-nowrap">
             {t.nav.contact[lang]}
           </a>
-          <a href="https://app.mohr-more.biz/login" className="nav-cta" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
+          <a href="https://app.mohr-more.biz/login" className="nav-cta whitespace-nowrap" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
             {t.nav.login[lang]}
           </a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {/*
             Language switcher (MMB-468 / Sub 8):
             Real route-link to the canonical counterpart page in the other language.
@@ -173,7 +179,7 @@ export function Navbar() {
 
           {/* Mobile hamburger */}
           <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger className="md:hidden" render={<Button variant="ghost" size="icon" className="text-text" />}>
+            <SheetTrigger className="xl:hidden" render={<Button variant="ghost" size="icon" className="text-text" />}>
               <MenuIcon />
             </SheetTrigger>
             <SheetContent side="top" className="border-b bg-[rgba(3,3,3,0.97)] p-4" style={{ borderColor: "var(--border)" }}>
