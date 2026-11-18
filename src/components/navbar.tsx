@@ -38,6 +38,8 @@ type MirrorRule = { match: RegExp; en: (m: RegExpMatchArray) => string };
 
 const DE_TO_EN: MirrorRule[] = [
   { match: /^\/$/, en: () => "/en" },
+  { match: /^\/blog\/([^/]+)\/?$/, en: (m) => `/en/blog/${m[1]}` },
+  { match: /^\/blog\/?$/, en: () => "/en/blog" },
   { match: /^\/leistungen\/([^/]+)\/?$/, en: (m) => `/en/services/${m[1]}` },
   { match: /^\/leistungen\/?$/, en: () => "/en/services" },
   { match: /^\/kontakt\/?$/, en: () => "/en/contact" },
@@ -51,6 +53,8 @@ const DE_TO_EN: MirrorRule[] = [
 
 const EN_TO_DE: MirrorRule[] = [
   { match: /^\/en\/?$/, en: () => "/" },
+  { match: /^\/en\/blog\/([^/]+)\/?$/, en: (m) => `/blog/${m[1]}` },
+  { match: /^\/en\/blog\/?$/, en: () => "/blog" },
   { match: /^\/en\/services\/([^/]+)\/?$/, en: (m) => `/leistungen/${m[1]}` },
   { match: /^\/en\/services\/?$/, en: () => "/leistungen" },
   { match: /^\/en\/contact\/?$/, en: () => "/kontakt" },

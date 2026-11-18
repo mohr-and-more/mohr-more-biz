@@ -1,28 +1,29 @@
 import type { Metadata } from "next";
-import { LeistungenPage } from "./leistungen-page";
-import { SITE, SERVICES } from "@/data/services";
-import "./../design-system.css";
+import { ReferenzenPage } from "./referenzen-page";
+import { SITE } from "@/data/services";
+import { CASE_STUDIES } from "@/data/cases";
+import "../../design-system.css";
 
-const PAGE_URL = `${SITE.url}/leistungen`;
+const PAGE_URL = `${SITE.url}/referenzen`;
 
 /**
- * SEO-Metadaten für /leistungen (MMB-471)
+ * SEO-Metadaten für /referenzen (MMB-473)
  * - Title ≤ 60 Zeichen
- * - Description ≤ 155 Zeichen
+ * - Description mit konkreten Versprechen (messbare Ergebnisse)
  * - Canonical + hreflang DE/EN/x-default
  * - Open Graph + Twitter Card
  */
 export const metadata: Metadata = {
-  title: "Leistungen — MOHR & MORE",
+  title: "Referenzen & Case Studies — MOHR & MORE",
   description:
-    "Strategie, Umsetzung, Wartung und Automatisierung für den Mittelstand. Messbare Ergebnisse statt Beratergeschwätz — MOHR & MORE.",
+    "Drei Case Studies aus Mittelstand, Handwerk und Logistik mit messbaren Ergebnissen. Filtern nach Branche und Stichwort, Details und Vorgehen pro Projekt.",
   alternates: {
     canonical: PAGE_URL,
     languages: {
       de: PAGE_URL,
       "x-default": PAGE_URL,
       // EN-Spiegelung kommt mit Sub-Issue 8 (MMB-468). Bis dahin ist x-default = DE.
-      en: `${SITE.url}/en/services`,
+      en: `${SITE.url}/en/references`,
     },
   },
   openGraph: {
@@ -30,23 +31,23 @@ export const metadata: Metadata = {
     locale: SITE.locale,
     url: PAGE_URL,
     siteName: SITE.name,
-    title: "Leistungen — MOHR & MORE",
+    title: "Referenzen & Case Studies — MOHR & MORE",
     description:
-      "Strategie, Umsetzung, Wartung und Automatisierung für den Mittelstand. Messbare Ergebnisse statt Beratergeschwätz.",
+      "Drei Case Studies aus Mittelstand, Handwerk und Logistik mit messbaren Ergebnissen.",
     images: [
       {
         url: `${SITE.url}/og-image.webp`,
         width: 1200,
         height: 630,
-        alt: "MOHR & MORE Leistungen",
+        alt: "MOHR & MORE Referenzen",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Leistungen — MOHR & MORE",
+    title: "Referenzen & Case Studies — MOHR & MORE",
     description:
-      "Strategie, Umsetzung, Wartung und Automatisierung für den Mittelstand.",
+      "Drei Case Studies aus Mittelstand, Handwerk und Logistik mit messbaren Ergebnissen.",
     images: [`${SITE.url}/og-image.webp`],
   },
   robots: {
@@ -56,7 +57,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * BreadcrumbList JSON-LD (MMB-471 Pflicht: BreadcrumbList JSON-LD)
+ * BreadcrumbList JSON-LD (MMB-468 Plan-Punkt 19 + MMB-473 Pflicht)
  */
 function BreadcrumbJsonLd() {
   const data = {
@@ -72,7 +73,7 @@ function BreadcrumbJsonLd() {
       {
         "@type": "ListItem",
         position: 2,
-        name: "Leistungen",
+        name: "Referenzen",
         item: PAGE_URL,
       },
     ],
@@ -86,20 +87,19 @@ function BreadcrumbJsonLd() {
 }
 
 /**
- * ItemList JSON-LD: Liste aller 6 Service-Slugs (für Google Rich Results)
- * Wir nutzen ItemList statt Service-Schema, da jede Karte bereits
- * einen eigenen Detailartikel mit FAQPage-Schema hat.
+ * ItemList JSON-LD: Liste aller Case Studies (für Google Rich Results).
+ * Wir nutzen ItemList, weil jeder Case eine eigene Detailseite hat.
  */
-function ServicesItemListJsonLd() {
+function CaseStudiesItemListJsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "MOHR & MORE Leistungen",
-    itemListElement: SERVICES.map((s, i) => ({
+    name: "MOHR & MORE Referenzen",
+    itemListElement: CASE_STUDIES.map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      name: s.title,
-      url: `${SITE.url}/leistungen/${s.slug}`,
+      name: c.title,
+      url: `${SITE.url}/referenzen/${c.slug}`,
     })),
   };
   return (
@@ -114,8 +114,8 @@ export default function Page() {
   return (
     <>
       <BreadcrumbJsonLd />
-      <ServicesItemListJsonLd />
-      <LeistungenPage />
+      <CaseStudiesItemListJsonLd />
+      <ReferenzenPage />
     </>
   );
 }

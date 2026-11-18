@@ -4,7 +4,7 @@ import { CaseDetailPage } from "./slug-page";
 import { CASE_SLUGS, getCase } from "@/data/cases";
 import type { CaseSlug } from "@/data/cases";
 import { SITE } from "@/data/services";
-import "./../../design-system.css";
+import "../../../design-system.css";
 
 type Params = { slug: string };
 

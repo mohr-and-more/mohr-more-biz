@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "../globals.css";
 import { ClientLayout } from "@/components/client-layout";
+import { FontStylesheets } from "@/components/font-stylesheets";
 
+/**
+ * German root layout.
+ *
+ * Since the app uses two independent documents (DE and EN), this layout is a
+ * root layout: it is the only place that defines `<html>` and `<body>` for the
+ * German tree. The English tree has its own root layout in `src/app/en/layout.tsx`.
+ */
 export const metadata: Metadata = {
   title: "MOHR & MORE BUSINESS — Zero-Human Company",
   description:
@@ -25,21 +33,11 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function DeRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de">
       <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
+        <FontStylesheets />
       </head>
       <body className="antialiased">
         <ClientLayout>{children}</ClientLayout>

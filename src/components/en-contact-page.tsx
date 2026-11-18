@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, FormEvent } from "react";
 /**
  * /en/contact — English contact page (MMB-468 / Sub 8)
  *
- * Mirrors the DE `KontaktPage` (`src/app/kontakt/kontakt-page.tsx`) but uses
+ * Mirrors the DE `KontaktPage` (`src/components/en-contact-page.tsx ist eigenständig; DE-Pendant: src/app/(de)/kontakt/kontakt-page.tsx`) but uses
  * EN copy directly (the page is already inside the EN layout; hardcoding the
  * EN strings here keeps the markup minimal and avoids reliance on the
  * client-side lang state for SEO-critical content).

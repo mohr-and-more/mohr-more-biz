@@ -5,15 +5,15 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/sections";
 
 /**
- * /en/* Client wrapper (MMB-468 / Sub 8)
+ * /en/* client wrapper (MMB-468 / Sub 8)
  *
- * Renders the same shell as the DE ClientLayout. The I18nProvider auto-detects
- * the lang from window.location.pathname on mount, so navigating to /en/* flips
- * all translations to English without a hard reload.
+ * Renders the same shell as the DE ClientLayout, but pins the language to
+ * English for this root layout. The URL decides the language — no detection,
+ * no stored preference.
  */
 export function ClientLayoutEn({ children }: { children: React.ReactNode }) {
   return (
-    <I18nProvider>
+    <I18nProvider initial="en">
       <Navbar />
       {children}
       <Footer />

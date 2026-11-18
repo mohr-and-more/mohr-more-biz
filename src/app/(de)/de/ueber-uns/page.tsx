@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { DeUeberUnsPage } from "./de-ueber-uns-page";
+import { DeUeberUnsPage } from "@/components/about-page";
 import { SITE } from "@/data/services";
-import "../../design-system.css";
+import "../../../design-system.css";
 
 const PAGE_URL = `${SITE.url}/de/ueber-uns`;
 
@@ -17,7 +17,7 @@ const PAGE_URL = `${SITE.url}/de/ueber-uns`;
  *             + BreadcrumbList (Start > Über uns)
  *  - Open Graph + Twitter Card (og-image.webp 1200x630)
  *
- * Die Komponente selbst (de-ueber-uns-page.tsx) ist client-side und über
+ * Die Komponente selbst (src/components/about-page.tsx) ist client-side und über
  * `useLang()` voll bilingual. JSON-LD wird hier im Server-Component inline
  * gerendert, damit es ohne JS sofort im HTML steht.
  */

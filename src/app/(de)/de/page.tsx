@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SITE, SERVICES } from "@/data/services";
 import { DeHomePage } from "./de-home-page";
-import "../design-system.css";
+import "../../design-system.css";
 
 const PAGE_URL = `${SITE.url}/de`;
 

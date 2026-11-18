@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { ClientLayoutEn } from "@/components/client-layout-en";
+import { FontStylesheets } from "@/components/font-stylesheets";
 import { SITE } from "@/data/services";
 import "../globals.css";
 
 /**
- * /en/* — English route layout (MMB-468 / Sub 8)
+ * /en/* — English root layout (MMB-468 / Sub 8)
  *
- * - Sets <html lang="en"> for EN-only routes.
- * - Provides hreflang + canonical metadata pointing at the DE root.
- * - Hydrates the DE/EN language provider with lang="en" initial state
- *   (ClientLayoutEn wraps the same I18nProvider with `initial="en"`).
+ * This is a root layout: no layout sits above it, so it alone defines
+ * `<html lang="en">` and `<body>` for the English tree. The German tree has its
+ * own root layout in `src/app/(de)/layout.tsx`; navigating between the two
+ * triggers a full page load, which is expected and keeps the document language
+ * correct in the static export.
  */
 export const metadata: Metadata = {
   title: {
@@ -44,21 +46,11 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function EnLayout({ children }: { children: React.ReactNode }) {
+export default function EnRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
+        <FontStylesheets />
       </head>
       <body className="antialiased">
         <ClientLayoutEn>{children}</ClientLayoutEn>

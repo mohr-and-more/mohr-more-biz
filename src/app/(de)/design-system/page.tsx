@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import "./../design-system.css";
+import "../../design-system.css";
 import { DesignSystemForm } from "./form";
 
 export const metadata: Metadata = {

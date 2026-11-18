@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SITE } from "@/data/services";
-import "../design-system.css";
+import "../../design-system.css";
 
 const PAGE_URL = `${SITE.url}/impressum`;
 

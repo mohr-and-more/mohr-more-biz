@@ -8,7 +8,7 @@ type Props = { service: Service };
 
 /**
  * English service detail page client component (MMB-468 / Sub 8).
- * Mirrors the DE `ServiceDetailPage` (`src/app/leistungen/[slug]/slug-page.tsx`)
+ * Mirrors the DE `ServiceDetailPage` (`src/components/service-detail-page.tsx`)
  * but uses /en/services/[slug] routes and EN breadcrumb copy. Content text
  * comes from the same `service` data object (titles are bilingual by design).
  */

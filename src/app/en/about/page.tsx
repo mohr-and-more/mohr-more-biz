@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DeUeberUnsPage } from "@/app/de/ueber-uns/de-ueber-uns-page";
+import { DeUeberUnsPage } from "@/components/about-page";
 import { SITE } from "@/data/services";
 import "../../design-system.css";
 

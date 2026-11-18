@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ServiceDetailPage } from "./slug-page";
+import { ServiceDetailPage } from "@/components/service-detail-page";
 import { DETAIL_SLUGS, SITE, getService } from "@/data/services";
 import type { ServiceSlug } from "@/data/services";
-import "./../../design-system.css";
+import "../../../design-system.css";
 
 type Params = { slug: string };
 

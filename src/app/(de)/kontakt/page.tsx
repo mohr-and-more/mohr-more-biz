@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { KontaktPage } from "./kontakt-page";
 import { SITE } from "@/data/services";
-import "../design-system.css";
+import "../../design-system.css";
 
 const PAGE_URL = `${SITE.url}/kontakt`;
 

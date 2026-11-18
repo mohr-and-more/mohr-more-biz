@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LeistungenPage } from "@/app/leistungen/leistungen-page";
+import { LeistungenPage } from "@/components/services-page";
 import { SITE, SERVICES } from "@/data/services";
 import "../../design-system.css";
 
