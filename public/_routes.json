@@ -4,7 +4,6 @@
   "exclude": [
     "/_next/static/*",
     "/videos/*",
-    "/organigramm/*",
     "/team/*",
     "/de/assets/*",
     "/favicon.ico",
