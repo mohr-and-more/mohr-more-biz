@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/_next/static/*",
+    "/videos/*",
+    "/organigramm/*",
+    "/team/*",
+    "/de/assets/*",
+    "/favicon.ico",
+    "/file.svg",
+    "/globe.svg",
+    "/next.svg",
+    "/vercel.svg",
+    "/window.svg",
+    "/og-image.svg",
+    "/og-image.png",
+    "/og-image.webp",
+    "/gunnar-mohr.png",
+    "/gunnar-mohr-web.jpg"
+  ]
+}
