@@ -15,10 +15,31 @@ import { useEffect, useRef, useState, FormEvent } from "react";
  * Pre-fills the message field from ?subject= and ?source= query parameters,
  * matching the DE ?betreff=/?quelle= convention with EN aliases.
  */
+/** Last resort when the server could neither deliver nor archive: prefilled mailto. */
+function buildFallbackMailto(fd: FormData): string {
+  const name = String(fd.get("name") ?? "").trim();
+  const email = String(fd.get("email") ?? "").trim();
+  const company = String(fd.get("company") ?? "").trim();
+  const message = String(fd.get("message") ?? "").trim();
+  const body = [
+    `Name: ${name}`,
+    company ? `Company: ${company}` : "",
+    `Email: ${email}`,
+    "",
+    message,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return `mailto:info@mohr-more.biz?subject=${encodeURIComponent(
+    "Contact inquiry via mohr-more.biz"
+  )}&body=${encodeURIComponent(body)}`;
+}
+
 export function EnContactPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [fallbackHref, setFallbackHref] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -40,18 +61,37 @@ export function EnContactPage() {
     e.preventDefault();
     setStatus("sending");
     setErrorMsg("");
-    const fd = new FormData(e.currentTarget);
+    setFallbackHref("");
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    // The EN form uses `subject`; the endpoint expects `betreff`.
+    const subject = String(fd.get("subject") ?? "").trim();
+    fd.delete("subject");
+    if (subject) fd.set("betreff", subject);
+    fd.set("lang", "en");
+    if (typeof window !== "undefined") fd.set("page", window.location.pathname);
+
     try {
       const res = await fetch("/api/kontakt", { method: "POST", body: fd });
       if (!res.ok) {
-        const body = await res.text();
-        throw new Error(body || `HTTP ${res.status}`);
+        const data: { error?: string } = await res.json().catch(() => ({}));
+        setStatus("error");
+        setErrorMsg(
+          data.error === "mail_failed" || data.error === "mail_not_configured"
+            ? "Your message could not be delivered automatically. Please send it by email — the link below is prefilled with your details."
+            : "Something went wrong. Please try again or call us directly."
+        );
+        setFallbackHref(buildFallbackMailto(fd));
+        return;
       }
       setStatus("ok");
-      formRef.current?.reset();
-    } catch (err) {
+      setFallbackHref("");
+      form.reset();
+    } catch {
       setStatus("error");
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error");
+      setErrorMsg("Server unreachable right now. Please try again later.");
+      setFallbackHref(buildFallbackMailto(fd));
     }
   }
 
@@ -195,7 +235,14 @@ export function EnContactPage() {
                 />
               </div>
               <div className="mm-form-checkbox" style={{ display: "flex", gap: "var(--mm-space-2)", alignItems: "flex-start" }}>
-                <input id="privacy" name="privacy" type="checkbox" required style={{ marginTop: "4px" }} />
+                <input
+                  id="privacy"
+                  name="consent"
+                  type="checkbox"
+                  value="1"
+                  required
+                  style={{ marginTop: "4px" }}
+                />
                 <label htmlFor="privacy" style={{ fontSize: "var(--mm-text-sm)", color: "var(--mm-color-muted)" }}>
                   I agree that MOHR &amp; MORE processes my details to handle this request according to
                   the privacy policy. Consent can be withdrawn at any time. (Privacy Policy)
@@ -203,8 +250,12 @@ export function EnContactPage() {
               </div>
               {status === "error" ? (
                 <p role="alert" style={{ color: "var(--mm-color-danger)" }}>
-                  Something went wrong. Please try again or call us directly.
-                  {errorMsg ? ` (${errorMsg})` : null}
+                  {errorMsg || "Something went wrong. Please try again or call us directly."}{" "}
+                  {fallbackHref ? (
+                    <a href={fallbackHref} style={{ color: "var(--mm-color-primary)", textDecoration: "underline" }}>
+                      Send the message by email
+                    </a>
+                  ) : null}
                 </p>
               ) : null}
               <button

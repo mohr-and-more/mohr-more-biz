@@ -81,6 +81,39 @@ function Icon({ name, size = 22 }: IconProps) {
 
 type Status = "idle" | "submitting" | "success" | "error" | "validation";
 
+function mailFailedMessage(lang: string): string {
+  return lang === "en"
+    ? "Your message could not be delivered automatically. Please send it by email directly — the link is prefilled with your details."
+    : "Die Nachricht konnte nicht automatisch zugestellt werden. Bitte senden Sie sie direkt per E-Mail — der Link ist mit Ihren Angaben vorausgefüllt.";
+}
+
+function fallbackMailLabel(lang: string): string {
+  return lang === "en" ? "Send the message by email" : "Nachricht per E-Mail senden";
+}
+
+/**
+ * Letzter Ausweg, wenn der Server die Anfrage nicht zustellen und nicht
+ * archivieren konnte: vorausgefüllter mailto:-Link, damit nichts verloren geht.
+ */
+function buildFallbackMailto(fd: FormData, lang: string): string {
+  const name = String(fd.get("name") ?? "").trim();
+  const email = String(fd.get("email") ?? "").trim();
+  const company = String(fd.get("company") ?? "").trim();
+  const message = String(fd.get("message") ?? "").trim();
+  const subject =
+    lang === "en" ? "Contact inquiry via mohr-more.biz" : "Kontaktanfrage über mohr-more.biz";
+  const body = [
+    `Name: ${name}`,
+    company ? `Firma: ${company}` : "",
+    `E-Mail: ${email}`,
+    "",
+    message,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return `mailto:info@mohr-more.biz?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 export function KontaktPage() {
   const { lang } = useLang();
   const t = translations.contactPage;
@@ -92,6 +125,7 @@ export function KontaktPage() {
   // Status-State
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [fallbackHref, setFallbackHref] = useState<string>("");
 
   // Prefill via ?betreff= und ?quelle=
   // (Plan-Punkt 18: Kontakt-Links tragen diese Parameter)
@@ -153,6 +187,7 @@ export function KontaktPage() {
     }
     setStatus("submitting");
     setErrorMsg("");
+    setFallbackHref("");
     try {
       const fd = new FormData(form);
       // Quelle & Betreff in Datenstrom übernehmen (auch wenn sie nicht im DOM stehen)
@@ -175,10 +210,13 @@ export function KontaktPage() {
           .catch(() => ({ error: "unknown" }));
         setStatus("error");
         setErrorMsg(
-          data.error === "network"
-            ? t.form.errorNetwork[lang]
-            : t.form.errorGeneric[lang]
+          data.error === "mail_failed" || data.error === "mail_not_configured"
+            ? mailFailedMessage(lang)
+            : data.error === "network"
+              ? t.form.errorNetwork[lang]
+              : t.form.errorGeneric[lang]
         );
+        setFallbackHref(buildFallbackMailto(new FormData(form), lang));
         return;
       }
       setStatus("success");
@@ -186,6 +224,7 @@ export function KontaktPage() {
     } catch {
       setStatus("error");
       setErrorMsg(t.form.errorNetwork[lang]);
+      setFallbackHref(buildFallbackMailto(new FormData(form), lang));
     }
   }
 
@@ -542,7 +581,20 @@ export function KontaktPage() {
                       <span aria-hidden="true" style={{ color: "var(--mm-color-accent)" }}>
                         <Icon name="alert" />
                       </span>
-                      <span>{errorMsg}</span>
+                      <span>
+                        {errorMsg}{" "}
+                        {fallbackHref ? (
+                          <a
+                            href={fallbackHref}
+                            style={{
+                              color: "var(--mm-color-primary)",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {fallbackMailLabel(lang)}
+                          </a>
+                        ) : null}
+                      </span>
                     </div>
                   ) : null}
 
