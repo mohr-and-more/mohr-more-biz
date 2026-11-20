@@ -119,6 +119,20 @@ GitHub → **Actions** → *Deploy to Cloudflare Pages* → **Run workflow**
 
 ## Prüfen
 
+Ein Befehl nach dem Redeploy:
+
+```bash
+KONTAKT_RETRY_TOKEN=<TOKEN> npm run kontakt:check
+# optional zusätzlich eine Testmail: --test-token=<KONTAKT_TEST_TOKEN>
+# andere Umgebung: --url=https://<preview-host>
+```
+
+Das Skript (`scripts/check-kontakt-live.mjs`) prüft in einem Lauf: Token und
+Archiv erreichbar, Testmail (optional), eine echte als „Live-Check“ markierte
+Anfrage durchs Formular, deren Eintrag im Archiv und den Retry-Lauf. Exit-Code
+0 nur, wenn Mailversand, Archiv und Retry belegt sind; sonst nennt es pro
+Fehlschlag die Ursache und den passenden Schritt dieser Anleitung.
+
 Vor der Einrichtung (Ist-Zustand ohne Secrets):
 
 ```bash
