@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Dokumentation
+
+- [kontaktformular-setup.md](kontaktformular-setup.md) — Cloudflare-Einrichtung des Kontaktformulars: Email Sending, API-Token, Pages-Variablen, KV-Binding `KONTAKT_ARCHIVE`, GitHub-Secret `KONTAKT_RETRY_TOKEN`, Redeploy.
+- [design-system.md](design-system.md) — Design System (Tokens, Komponenten) und Stand des Rollouts.
+
+### Kontaktformular prüfen
+
+```bash
+npm run mail:test                 # eine Testmail über /api/kontakt/test
+KONTAKT_RETRY_TOKEN=… npm run kontakt:check   # Live-Check: Mailversand, Archiv, Retry
+```
+
+`kontakt:check` schickt eine als „Live-Check“ markierte Anfrage durch das Formular und belegt danach, ob sie zugestellt, archiviert und – falls nötig – nachgeliefert wurde. Details und Fehlerbehebung: [kontaktformular-setup.md](kontaktformular-setup.md).
+
 ## Getting Started
 
 First, run the development server:
