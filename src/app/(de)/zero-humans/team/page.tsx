@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Das KI-Team — 272 Agenten | MOHR & MORE",
   description:
     "Alle 272 KI-Agenten von MOHR & MORE als einzigartige Cryptopunks-Pixelporträts. Jeder Kopf klickbar — mit Rolle, Abteilung und Hierarchie-Ebene. Die Null-Menschen-Firma.",
+  alternates: {
+    canonical: "https://mohr-more.biz/zero-humans/team",
+  },
   openGraph: {
     title: "The AI Team — 272 Agents | MOHR & MORE",
     description:

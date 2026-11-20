@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "KI Entwicklung — Sparten & Engineering | MOHR & MORE",
   description:
     "Die technologische Entwicklung von MOHR & MORE Business: AI Agents, Full-Stack Entwicklung, Cloud-Architektur und Automation. LazyCode⋮Cologne ist die Software-Sparte.",
+  alternates: {
+    canonical: "https://mohr-more.biz/ki-entwicklung",
+  },
   openGraph: {
     title: "KI Entwicklung — MOHR & MORE",
     description:

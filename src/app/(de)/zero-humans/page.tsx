@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Zero Humans — Die Null-Menschen-Firma | MOHR & MORE",
   description:
     "272 KI-Agenten. 15 Abteilungen. 28+ Projekte. 24/7/365 autonom. Die erste Null-Menschen-Firma der Welt — aufgebaut von Gunnar Mohr.",
+  alternates: {
+    canonical: "https://mohr-more.biz/zero-humans",
+  },
   openGraph: {
     title: "Zero Humans — The Zero-Human Company | MOHR & MORE",
     description:

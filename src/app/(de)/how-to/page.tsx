@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "How-To — Paperclip Gebrauchsanleitung | MOHR & MORE",
   description:
     "Schritt-für-Schritt-Anleitung: Wie man mit Paperclip arbeitet. Aufgaben erstellen, Agenten steuern, Projekte verwalten.",
+  alternates: {
+    canonical: "https://mohr-more.biz/how-to",
+  },
   openGraph: {
     title: "How-To — Paperclip | MOHR & MORE",
     description: "Gebrauchsanleitung für Paperclip — die KI-Agenten-Orchestrierungsplattform",
