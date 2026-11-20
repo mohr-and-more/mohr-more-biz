@@ -1,94 +1,105 @@
 /**
  * Cloudflare Pages Function — /api/kontakt (MMB-472)
  *
- * Empfängt POST-Submissions vom Kontaktformular auf /kontakt.
+ * Empfängt POST-Submissions vom Kontaktformular auf /kontakt und /en/contact.
  *
  * Erwartetes Format:
- *   multipart/form-data ODER application/x-www-form-urlencoded
+ *   multipart/form-data ODER application/x-www-form-urlencoded ODER application/json
  *   Felder:
  *     - name     (string, required, 2..120)
  *     - company  (string, optional, max 180)
  *     - email    (string, required, RFC 5322 Light)
  *     - message  (string, required, min 20, max 4000)
  *     - consent  ("1" wenn Checkbox gesetzt, required)
- *     - betreff  (optional, max 200)  — aus ?betreff= URL-Param
- *     - quelle   (optional, max 200)  — aus ?quelle= URL-Param
+ *     - betreff  (optional, max 200)  — aus ?betreff= / ?subject= URL-Param
+ *     - quelle   (optional, max 200)  — aus ?quelle= / ?source= URL-Param
  *     - page     (optional, max 200)  — window.location.pathname
  *     - lang     ("de" | "en")       — UI-Sprache
  *     - website  (Honeypot, muss leer sein)
  *
- * Antwort:
- *   200 OK            — { ok: true, id: "..." }
+ * Zustellung (in dieser Reihenfolge):
+ *   1. Vor dem Versand wird die Anfrage — wenn der KV-Bucket `KONTAKT_ARCHIVE`
+ *      gebunden ist — 30 Tage lang archiviert. Damit ist sie unabhängig vom
+ *      Ausgang des Mailversands gespeichert.
+ *   2. Primär: Cloudflare Email Sending (REST, bis zu 3 Versuche).
+ *   3. Falls das scheitert: optionaler `KONTAKT_FALLBACK_WEBHOOK`.
+ *   4. Erst wenn weder Mail noch Webhook zustellen und nichts archiviert werden
+ *      konnte, antwortet der Endpunkt mit 502/503 — das Formular bietet dann
+ *      einen vorausgefüllten mailto:-Link als letzten Ausweg an.
+ *
+ * Antworten:
+ *   200 OK            — { ok: true, id, delivery: "sent" | "webhook" | "queued", archived }
  *   400 Bad Request   — { error: "validation", fields: { ... } }
- *   429 Too Many Req  — { error: "rate_limit" }  (3 / 10min per IP)
- *   500 Internal      — { error: "server" }
+ *   405 / OPTIONS     — Preflight bzw. Method Not Allowed
+ *   429 Too Many Req  — { error: "rate_limit" }  (3 / 10min per IP, nur mit KONTAKT_RATE_KV)
+ *   502 Bad Gateway   — { error: "mail_failed", retained: false, id }
+ *   503 Unavailable   — { error: "mail_not_configured", retained: false, id }
  *
  * DSGVO:
- *   - Daten werden ausschließlich per E-Mail an MOHR & MORE zugestellt.
- *   - Keine Logs mit personenbezogenen Daten (außer Cloudflare-Request-Log,
- *     das ist Standard und außerhalb unseres Einflusses).
- *   - Rate-Limit: max. 3 Anfragen pro 10 Minuten pro IP-Adresse.
- *
- * Deployment:
- *   - Datei liegt in functions/api/kontakt.ts
- *   - Cloudflare Pages liest das automatisch und routet POST /api/kontakt hierher.
- *   - Lokal testbar mit `wrangler pages dev .` (siehe /scripts).
+ *   - Zugestellt wird per E-Mail an MOHR & MORE; optionale Archivierung im KV
+ *     ist auf 30 Tage begrenzt (Archiv-Eintrag enthält die Anfrage, nicht die IP;
+ *     die IP wird nur als 12-stelliger SHA-256-Hash geloggt).
+ *   - Server-Logs enthalten keine Klartext-Personendaten (nur Metadaten).
  */
 
-type Env = {
-  KONTAKT_TO_EMAIL?: string;
-  KONTAKT_FROM_EMAIL?: string;
-  KONTAKT_MAIL_FROM?: string;
-  KONTAKT_RATE_KV?: KVNamespace;
-};
+import {
+  buildInquiryMail,
+  mailConfigured,
+  missingMailConfig,
+  sendViaCloudflareEmail,
+  sendViaWebhook,
+  type MailEnv,
+  type MailResult,
+} from "./_mail.ts";
 
 interface KVNamespace {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
 }
 
+type Env = MailEnv & {
+  KONTAKT_RATE_KV?: KVNamespace;
+  /** Optionales KV-Archiv (Binding-Name: KONTAKT_ARCHIVE). */
+  KONTAKT_ARCHIVE?: KVNamespace;
+};
+
+interface KVNamespaceLike {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const ARCHIVE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
+type Inquiry = {
+  name: string;
+  company: string;
+  email: string;
+  message: string;
+  betreff: string;
+  quelle: string;
+  page: string;
+  lang: string;
+};
 
 type Validation = {
   ok: boolean;
   fields: Partial<Record<string, string>>;
-  data?: {
-    name: string;
-    company: string;
-    email: string;
-    message: string;
-    betreff: string;
-    quelle: string;
-    page: string;
-    lang: string;
-  };
+  data?: Inquiry;
+  honeypot?: boolean;
 };
 
 function validate(body: FormData | URLSearchParams): Validation {
-  const get = (k: string) =>
-    (body.get(k) == null ? "" : String(body.get(k))).trim();
+  const get = (k: string) => (body.get(k) == null ? "" : String(body.get(k))).trim();
 
-  const website = get("website");
-  if (website) {
+  if (get("website")) {
     // Honeypot ausgelöst — Bot vermutet, aber wir antworten trotzdem 200,
     // damit das Script keinen Hinweis bekommt.
-    return {
-      ok: true,
-      fields: {},
-      data: {
-        name: "",
-        company: "",
-        email: "",
-        message: "",
-        betreff: "",
-        quelle: "",
-        page: "",
-        lang: "de",
-      },
-    };
+    return { ok: true, fields: {}, honeypot: true };
   }
 
   const fields: Record<string, string> = {};
+
   const name = get("name");
   if (name.length < 2 || name.length > 120) fields.name = "invalid";
 
@@ -101,20 +112,21 @@ function validate(body: FormData | URLSearchParams): Validation {
   const consent = get("consent");
   if (consent !== "1") fields.consent = "missing";
 
-  const company = get("company").slice(0, 180);
-  const betreff = get("betreff").slice(0, 200);
-  const quelle = get("quelle").slice(0, 200);
-  const page = get("page").slice(0, 200);
-  const lang = ["de", "en"].includes(get("lang")) ? get("lang") : "de";
-
-  if (Object.keys(fields).length > 0) {
-    return { ok: false, fields };
-  }
+  if (Object.keys(fields).length > 0) return { ok: false, fields };
 
   return {
     ok: true,
     fields: {},
-    data: { name, company, email, message, betreff, quelle, page, lang },
+    data: {
+      name,
+      company: get("company").slice(0, 180),
+      email,
+      message,
+      betreff: get("betreff").slice(0, 200),
+      quelle: get("quelle").slice(0, 200),
+      page: get("page").slice(0, 200),
+      lang: ["de", "en"].includes(get("lang")) ? get("lang") : "de",
+    },
   };
 }
 
@@ -123,11 +135,6 @@ function jsonResponse(body: unknown, status: number, headers?: Record<string, st
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      // Same-origin / CORS nur minimal — wir wollen, dass jeder Origin posten darf,
-      // aber kein Browser-Cred-Austausch erlaubt ist.
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST, OPTIONS",
-      "access-control-allow-headers": "content-type",
       "cache-control": "no-store",
       ...(headers ?? {}),
     },
@@ -135,7 +142,7 @@ function jsonResponse(body: unknown, status: number, headers?: Record<string, st
 }
 
 async function isRateLimited(env: Env, ip: string): Promise<boolean> {
-  // Drei Submissions pro 10 Minuten pro IP. Optional: nur wenn KV gebunden ist.
+  // Drei Submissions pro 10 Minuten pro IP — nur wenn KV gebunden ist.
   if (!env.KONTAKT_RATE_KV) return false;
   const key = `kontakt:${ip}`;
   const cur = Number((await env.KONTAKT_RATE_KV.get(key)) ?? "0");
@@ -144,53 +151,76 @@ async function isRateLimited(env: Env, ip: string): Promise<boolean> {
   return false;
 }
 
-function buildEmailBody(d: NonNullable<Validation["data"]>): string {
-  const subject = d.betreff || (d.lang === "en" ? "Contact inquiry" : "Kontaktanfrage");
-  const from = d.lang === "en" ? "via EN contact form" : "über Kontaktformular";
-  const lines: string[] = [
-    `Neue Kontaktanfrage (${from})`,
-    "",
-    `Name:      ${d.name}`,
-    `Firma:     ${d.company || "—"}`,
-    `E-Mail:    ${d.email}`,
-    `Betreff:   ${subject}`,
-    `Quelle:    ${d.quelle || "—"}`,
-    `Seite:     ${d.page || "—"}`,
-    `Sprache:   ${d.lang}`,
-    "",
-    "Nachricht:",
-    "----------",
-    d.message,
-    "----------",
-    "",
-    `Eingegangen: ${new Date().toISOString()}`,
-  ];
-  return lines.join("\n");
+type ArchiveRecord = Inquiry & {
+  id: string;
+  createdAt: string;
+  delivery: "pending" | "sent" | "webhook" | "failed" | "not_configured";
+  ipHash: string;
+};
+
+/**
+ * Schreibt die Anfrage vor dem Versand in den KV-Bucket. Gibt zurück, ob sie
+ * tatsächlich gespeichert werden konnte — davon hängt ab, ob der Client bei
+ * einem Zustellfehler beruhigt werden darf.
+ */
+async function archiveInquiry(
+  env: Env,
+  record: ArchiveRecord
+): Promise<{ stored: boolean; kv?: KVNamespaceLike; key: string }> {
+  const kv = env.KONTAKT_ARCHIVE;
+  const key = `kontakt:${record.createdAt}:${record.id}`;
+  if (!kv) return { stored: false, key };
+  try {
+    await kv.put(key, JSON.stringify(record), { expirationTtl: ARCHIVE_TTL_SECONDS });
+    return { stored: true, kv, key };
+  } catch {
+    return { stored: false, key };
+  }
 }
 
-export const onRequestPost = async (context: { env: Env; request: Request }) => {
-  const env = context.env ?? {};
-  const req = context.request;
+async function markArchive(
+  archive: { stored: boolean; kv?: KVNamespaceLike; key: string },
+  record: ArchiveRecord
+): Promise<void> {
+  if (!archive.stored || !archive.kv) return;
+  try {
+    await archive.kv.put(archive.key, JSON.stringify(record), {
+      expirationTtl: ARCHIVE_TTL_SECONDS,
+    });
+  } catch {
+    // Ein fehlgeschlagenes Update darf die Zustellung nicht kippen.
+  }
+}
 
-  // CORS preflight
-  if (req.method === "OPTIONS") {
+export const onRequest = async (context: { env: Env; request: Request }) => {
+  const request = context.request;
+  if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
       headers: {
         "access-control-allow-origin": "*",
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
       },
     });
   }
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "POST, OPTIONS", "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+  return handlePost(context.env ?? {}, request);
+};
 
+async function handlePost(env: Env, req: Request): Promise<Response> {
   // IP aus Headers lesen (Cloudflare setzt CF-Connecting-IP)
   const ip =
     req.headers.get("cf-connecting-ip") ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "0.0.0.0";
 
-  // Rate-Limit
   if (await isRateLimited(env, ip)) {
     return jsonResponse({ error: "rate_limit" }, 429);
   }
@@ -200,78 +230,117 @@ export const onRequestPost = async (context: { env: Env; request: Request }) => 
   const ct = (req.headers.get("content-type") || "").toLowerCase();
   try {
     if (ct.includes("application/x-www-form-urlencoded")) {
-      const text = await req.text();
-      body = new URLSearchParams(text);
+      body = new URLSearchParams(await req.text());
     } else if (ct.includes("multipart/form-data")) {
       body = await req.formData();
     } else if (ct.includes("application/json")) {
-      const text = await req.text();
-      try {
-        const obj = JSON.parse(text) as Record<string, unknown>;
-        const usp = new URLSearchParams();
-        for (const [k, v] of Object.entries(obj)) {
-          if (typeof v === "string") usp.append(k, v);
-          else if (v != null) usp.append(k, String(v));
-        }
-        body = usp;
-      } catch {
-        return jsonResponse({ error: "validation", fields: { _: "json" } }, 400);
+      const obj = JSON.parse(await req.text()) as Record<string, unknown>;
+      const usp = new URLSearchParams();
+      for (const [k, v] of Object.entries(obj)) {
+        if (typeof v === "string") usp.append(k, v);
+        else if (v != null) usp.append(k, String(v));
       }
+      body = usp;
     } else {
-      // Fallback: versuche urlencoded
-      const text = await req.text();
-      body = new URLSearchParams(text);
+      body = new URLSearchParams(await req.text());
     }
   } catch {
     return jsonResponse({ error: "validation", fields: { _: "parse" } }, 400);
   }
 
-  // Validieren
   const v = validate(body);
-  if (!v.ok) {
-    return jsonResponse({ error: "validation", fields: v.fields }, 400);
-  }
-  if (!v.data) {
-    // Honeypot-Pfad: 200 OK zurück, ohne irgendwas zu tun.
+  if (!v.ok) return jsonResponse({ error: "validation", fields: v.fields }, 400);
+  if (v.honeypot || !v.data) {
     return jsonResponse({ ok: true, id: "silently-dropped" }, 200);
   }
 
-  // Senden — derzeit lediglich strukturierter Log-Output (Cloudflare tail)
-  // und eine Outbound-Mail-Vorbereitung, falls SMTP-Secrets in env gesetzt sind.
-  const toEmail = env.KONTAKT_TO_EMAIL || "[email protected]";
-  const fromEmail = env.KONTAKT_FROM_EMAIL || "[email protected]";
-  const body_text = buildEmailBody(v.data);
+  const inquiry = v.data;
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
 
-  // In Production: hier MailChannels / SES / Postmark je nach Setup aufrufen.
-  // Für den reinen Live-Test loggen wir strukturiert in den Worker-Tail.
-  // Body enhält KEINE personenbezogenen Daten in den Server-Logs (nur Metadaten).
-  console.log(
-    JSON.stringify({
-      evt: "kontakt.received",
-      to: toEmail,
-      from: fromEmail,
-      lang: v.data.lang,
-      name_len: v.data.name.length,
-      email_domain: v.data.email.split("@")[1] ?? "?",
-      msg_len: v.data.message.length,
-      betreff: v.data.betreff,
-      quelle: v.data.quelle,
-      ip_hash: await hashIp(ip),
-    })
-  );
+  const record: ArchiveRecord = {
+    ...inquiry,
+    id,
+    createdAt,
+    delivery: "pending",
+    ipHash: await hashIp(ip),
+  };
 
-  return jsonResponse({ ok: true, id: crypto.randomUUID() }, 200);
-};
+  // 1. Archivieren, bevor irgendetwas versendet wird.
+  const archive = await archiveInquiry(env, record);
 
-// GET nicht erlaubt — damit Bots nicht einfach "feuern und vergessen" können.
-export const onRequestGet = async () =>
-  new Response("Method Not Allowed", {
-    status: 405,
-    headers: {
-      allow: "POST, OPTIONS",
-      "content-type": "text/plain; charset=utf-8",
+  // 2. Mail bauen und zustellen.
+  const mail = buildInquiryMail({ ...inquiry, id, createdAt });
+  let result: MailResult = await sendViaCloudflareEmail(env, mail);
+  let delivery: ArchiveRecord["delivery"] = "failed";
+
+  if (result.ok) {
+    delivery = "sent";
+  } else if ((env.KONTAKT_FALLBACK_WEBHOOK || "").trim()) {
+    // 3. Zweiter Zustellweg, falls der Mailversand scheitert.
+    const fallback = await sendViaWebhook(env, mail);
+    if (fallback.ok) {
+      delivery = "webhook";
+      result = fallback;
+    }
+  }
+
+  if (!result.ok && result.error === "not_configured" && delivery !== "webhook") {
+    delivery = "not_configured";
+  }
+
+  record.delivery = delivery;
+  await markArchive(archive, record);
+
+  // 4. Diagnose-Log: nur Metadaten, keine Klartext-Personendaten.
+  const log = {
+    evt: result.ok ? "kontakt.delivered" : "kontakt.delivery_failed",
+    id,
+    delivery,
+    archived: archive.stored,
+    provider: result.provider,
+    attempts: result.attempts,
+    status: result.status,
+    error: result.error,
+    detail: result.detail,
+    lang: inquiry.lang,
+    betreff: inquiry.betreff || undefined,
+    quelle: inquiry.quelle || undefined,
+    name_len: inquiry.name.length,
+    email_domain: inquiry.email.split("@")[1] ?? "?",
+    msg_len: inquiry.message.length,
+    missing_config: mailConfigured(env) ? undefined : missingMailConfig(env),
+  };
+  if (result.ok) console.log(JSON.stringify(log));
+  else console.error(JSON.stringify(log));
+
+  const headers = { "access-control-allow-origin": "*" };
+
+  if (result.ok) {
+    return jsonResponse(
+      { ok: true, id, delivery: delivery === "webhook" ? "webhook" : "sent", archived: archive.stored },
+      200,
+      headers
+    );
+  }
+
+  // Zustellung gescheitert — aber die Anfrage ist gespeichert.
+  if (archive.stored) {
+    return jsonResponse({ ok: true, id, delivery: "queued", archived: true }, 200, headers);
+  }
+
+  // Nichts hat funktioniert: der Client bekommt einen mailto:-Ausweg angeboten.
+  const status = delivery === "not_configured" ? 503 : 502;
+  return jsonResponse(
+    {
+      error: delivery === "not_configured" ? "mail_not_configured" : "mail_failed",
+      retained: false,
+      id,
     },
-  });
+    status,
+    headers
+  );
+}
 
 async function hashIp(ip: string): Promise<string> {
   const data = new TextEncoder().encode(ip);
