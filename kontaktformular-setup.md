@@ -9,43 +9,62 @@ Alle Werte gehören ausschließlich in die Cloudflare- bzw. GitHub-Oberfläche.
 Nichts davon wird im Repo, im Code oder in einer Datei abgelegt.
 
 **Reihenfolge:** 1 → 2 → 3 → 4 → 5 → 6. Schritt 6 ist Pflicht, sonst greifen
-die Variablen aus Schritt 3 nicht.
+weder die Variablen aus Schritt 3 noch das Binding aus Schritt 4.
+
+**Voraussetzungen** (laut Cloudflare-Doku, Stand November 2026): Email Sending
+ist Beta und nur im **Workers Paid**-Plan verfügbar; die Domain muss über
+Cloudflare-DNS laufen.
 
 ---
 
 ## 1. Email Sending für die Domain freischalten
 
-Cloudflare Dashboard → **Email** → **Email Sending** → Domain `mohr-more.biz`
-onboarden. Danach muss der Absender auf dieser Domain liegen
-(`kontakt@mohr-more.biz` ist der Default in `functions/api/_mail.ts`).
+Dashboard → **Compute** → **Email Service** → **Email Sending**
+(direkt: `dash.cloudflare.com/?to=/:account/email-service/sending`) →
+**Onboard Domain** → Domain `mohr-more.biz` wählen → **Done**.
+
+Cloudflare legt dabei auf der Subdomain `cf-bounce` die nötigen DNS-Einträge
+an (MX für Bounces, TXT für SPF, DKIM und DMARC). Das dauert meist 5–15
+Minuten, im Extremfall bis zu 24 Stunden. Der Absender muss auf dieser Domain
+liegen (`kontakt@mohr-more.biz` ist der Default in `functions/api/_mail.ts`).
 
 Ohne diesen Schritt antwortet die Cloudflare-API mit einem Fehler, der im Log
 als `kontakt.delivery_failed` mit `provider_error` erscheint.
 
 ## 2. API-Token anlegen
 
-**My Profile → API Tokens → Create Token**, Berechtigung
-**Email Sending: Edit**, beschränkt auf das Konto. Ergebnis sind zwei Werte:
+Dashboard → **My Profile** → **API Tokens** → **Create Token**
+(alternativ **Manage Account** → **API Tokens** für einen Account-Token, der
+nicht an eine Person gebunden ist) → *Create Custom Token*:
+
+- **Policy type:** Account
+- **Permission:** **Email Sending: Edit**
+
+Ergebnis sind zwei Werte:
 
 | Wert | Wofür |
 |---|---|
 | Account-ID | `CF_EMAIL_ACCOUNT_ID` |
-| Token | `CF_EMAIL_API_TOKEN` |
+| Token (`cfut_…`) | `CF_EMAIL_API_TOKEN` |
 
 Der Token wird nur einmal angezeigt. Er ist der einzige Wert, der sich nicht
-automatisieren lässt.
+automatisieren lässt. Die Account-ID steht zusätzlich im Dashboard unter
+**Manage Account → Account ID**.
 
 ## 3. Pages-Variablen setzen
 
-Cloudflare Dashboard → **Workers & Pages** → Projekt `mohr-more` →
-**Settings → Variables and Secrets** — jeweils für **Production** *und*
-**Preview**:
+Dashboard → **Workers & Pages** → Projekt `mohr-more` →
+**Settings** → **Variables and Secrets** → **Add** — jeweils für
+**Production** *und* **Preview**:
 
 | Name | Typ | Wert |
 |---|---|---|
 | `CF_EMAIL_ACCOUNT_ID` | Variable | Account-ID aus Schritt 2 |
 | `CF_EMAIL_API_TOKEN` | **Secret** | Token aus Schritt 2 |
 | `KONTAKT_RETRY_TOKEN` | **Secret** | selbst erzeugter Zufallswert, z. B. `openssl rand -hex 32` |
+
+Pro Eintrag: Namen und Wert eintragen, bei Secrets **Encrypt** wählen, dann
+**Save**.
 
 Optional:
 
@@ -61,12 +80,16 @@ Optional:
 Ohne Archiv gibt es nichts nachzustellen: Der Retry-Lauf hat dann keine Quelle
 und antwortet mit `no_archive`.
 
-Cloudflare Dashboard → **Workers & Pages → KV** → Namespace anlegen, z. B.
-`mohr-more-kontakt-archive`. Dann im Pages-Projekt `mohr-more` unter
-**Settings → Functions → KV namespace bindings**:
+**Namespace anlegen:** Dashboard → **Workers KV**
+(`dash.cloudflare.com/<account-id>/workers/kv/namespaces`, am schnellsten über
+die Dashboard-Suche nach „KV") → **Create instance** → Name z. B.
+`mohr-more-kontakt-archive` → **Create**.
 
-- Variable name: **`KONTAKT_ARCHIVE`** (exakt so, der Code liest diesen Namen)
-- Namespace: der eben angelegte
+**Binding setzen:** **Workers & Pages** → Projekt `mohr-more` →
+**Settings** → **Bindings** → **Add** → **KV namespace**:
+
+- **Variable name:** **`KONTAKT_ARCHIVE`** (exakt so, der Code liest diesen Namen)
+- **KV namespace:** der eben angelegte
 - Environment: **Production** und **Preview**
 
 Einträge laufen nach 30 Tagen automatisch ab (`expirationTtl`).
@@ -87,8 +110,9 @@ Dieses Secret schützt die Endpunkte `POST /api/kontakt/retry` und
 
 ## 6. Redeploy
 
-Pages-Variablen und Bindings greifen erst mit einem neuen Deployment. Eine
-Änderung der Environment-Variablen allein reicht nicht.
+Variablen, Secrets und Bindings greifen erst mit einem neuen Deployment — das
+Setzen allein reicht nicht (Cloudflare dokumentiert das für Secrets und für
+KV-Bindings ausdrücklich).
 
 GitHub → **Actions** → *Deploy to Cloudflare Pages* → **Run workflow**
 (Branch `main`), oder einen Commit auf `main` pushen.
@@ -125,7 +149,7 @@ Archiv gespeichert und wird beim nächsten Retry-Lauf nachgestellt.
 | Symptom | Ursache |
 |---|---|
 | `503 mail_not_configured` | Schritt 3 fehlt oder es wurde nach dem Setzen nicht neu deployed (Schritt 6) |
-| `502 mail_failed` | Token ungültig/abgelaufen oder Domain nicht für Email Sending freigeschaltet (Schritt 1/2) — Details stehen im Pages-Log |
+| `502 mail_failed` | Token ungültig/abgelaufen, Domain nicht onboarded (Schritt 1) oder Account nicht im Workers-Paid-Plan — Details stehen im Pages-Log |
 | `200 {"delivery":"queued"}` | Mailversand scheitert, Anfrage liegt im Archiv; Retry-Lauf und `queue` zeigen sie |
 | `503 queue_disabled` | `KONTAKT_RETRY_TOKEN` fehlt in den Pages-Variablen |
 | `503 no_archive` | Schritt 4 fehlt (Binding nicht gesetzt oder Name nicht `KONTAKT_ARCHIVE`) |
@@ -134,3 +158,12 @@ Archiv gespeichert und wird beim nächsten Retry-Lauf nachgestellt.
 Logs: Cloudflare Dashboard → Pages-Projekt → **Functions → Logs**. Dort stehen
 `kontakt.delivered` bzw. `kontakt.delivery_failed` als JSON — mit Metadaten
 (ID, Provider, Versuche, Fehlertext), aber ohne Klartext-Nachricht.
+
+## Quellen (geprüft am 20.11.2026)
+
+- Email Sending einrichten: <https://developers.cloudflare.com/email-service/get-started/send-emails/>
+- REST-Endpunkt `POST /accounts/{account_id}/email/sending/send`: ebenda
+- Pages-Variablen und Secrets: <https://developers.cloudflare.com/pages/functions/bindings/#environment-variables> und <https://developers.cloudflare.com/pages/functions/bindings/#secrets>
+- KV-Binding im Pages-Projekt: <https://developers.cloudflare.com/pages/functions/bindings/#kv-namespaces>
+- KV-Namespace anlegen: <https://developers.cloudflare.com/kv/get-started/#2-create-a-kv-namespace>
+- API-Token erstellen: <https://developers.cloudflare.com/fundamentals/api/get-started/create-token/>
