@@ -14,6 +14,8 @@
  *                              Domain, Default kontakt@mohr-more.biz
  *   KONTAKT_FALLBACK_WEBHOOK   optionaler zweiter Zustellweg (JSON-POST, z. B. n8n/
  *                              Slack-Workflow), falls der Mailversand scheitert
+ *   KONTAKT_ALERT_WEBHOOK      optionaler Alarm-Kanal, der bei jeder nicht
+ *                              zugestellten Anfrage benachrichtigt
  *
  * Secrets gehören ausschließlich in die Pages-Umgebung, nie in den Code.
  */
@@ -24,6 +26,7 @@ export interface MailEnv {
   KONTAKT_TO_EMAIL?: string;
   KONTAKT_FROM_EMAIL?: string;
   KONTAKT_FALLBACK_WEBHOOK?: string;
+  KONTAKT_ALERT_WEBHOOK?: string;
 }
 
 export interface MailMessage {
@@ -47,9 +50,23 @@ export interface MailResult {
 type FetchLike = typeof fetch;
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
-const REQUEST_TIMEOUT_MS = 8000;
+/**
+ * Kurze Timeouts: die Summe aus Versuchen und Wartezeiten muss deutlich unter
+ * dem Zeitlimit einer Pages Function bleiben. Worst Case hier:
+ * 3 × 3,5 s + 0,7 s Wartezeit = 11,2 s (plus optional 3 s Alarm-Webhook).
+ */
+const REQUEST_TIMEOUT_MS = 3500;
+const ALERT_TIMEOUT_MS = 3000;
 /** Wartezeiten zwischen den Versuchen (Länge bestimmt die Anzahl der Retries). */
-const RETRY_DELAYS_MS = [400, 1200];
+const RETRY_DELAYS_MS = [200, 500];
+
+export const MAIL_TIMINGS = {
+  requestTimeoutMs: REQUEST_TIMEOUT_MS,
+  retryDelaysMs: RETRY_DELAYS_MS,
+  /** Theoretisches Maximum von sendViaCloudflareEmail in Millisekunden. */
+  worstCaseMs: REQUEST_TIMEOUT_MS * (RETRY_DELAYS_MS.length + 1) +
+    RETRY_DELAYS_MS.reduce((a, b) => a + b, 0),
+};
 
 export function mailConfigured(env: MailEnv): boolean {
   return Boolean(
@@ -83,10 +100,11 @@ function isRetryable(status: number): boolean {
 async function fetchWithTimeout(
   fetchImpl: FetchLike,
   url: string,
-  init: RequestInit
+  init: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetchImpl(url, { ...init, signal: controller.signal });
   } finally {
@@ -200,9 +218,8 @@ export async function sendViaCloudflareEmail(
 }
 
 /**
- * Zweiter Zustellweg: generischer JSON-Webhook (optional). Damit geht eine
- * Anfrage auch dann nicht verloren, wenn der Mailversand dauerhaft scheitert
- * und kein KV-Archiv gebunden ist.
+ * Zweiter Zustellweg: generischer JSON-Webhook (optional). Ein einzelner
+ * Versuch mit kurzem Timeout — er ist die Rückfallebene, nicht der Regelweg.
  */
 export async function sendViaWebhook(
   env: MailEnv,
@@ -214,12 +231,11 @@ export async function sendViaWebhook(
     return { ok: false, provider: "webhook", error: "not_configured", attempts: 0 };
   }
 
-  const maxAttempts = 2;
-  let last: MailResult = { ok: false, provider: "webhook", error: "unknown", attempts: 0 };
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const res = await fetchWithTimeout(fetchImpl, url, {
+  try {
+    const res = await fetchWithTimeout(
+      fetchImpl,
+      url,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -230,31 +246,55 @@ export async function sendViaWebhook(
           html: mail.html,
           reply_to: mail.replyTo,
         }),
-      });
+      },
+      2500
+    );
 
-      if (res.ok) {
-        return { ok: true, provider: "webhook", status: res.status, attempts: attempt };
-      }
-
-      last = {
-        ok: false,
-        provider: "webhook",
-        status: res.status,
-        error: "webhook_error",
-        detail: `HTTP ${res.status}`,
-        attempts: attempt,
-      };
-      if (!isRetryable(res.status) || attempt === maxAttempts) return last;
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      last = { ok: false, provider: "webhook", error: "network", detail, attempts: attempt };
-      if (attempt === maxAttempts) return last;
+    if (res.ok) {
+      return { ok: true, provider: "webhook", status: res.status, attempts: 1 };
     }
 
-    await sleep(RETRY_DELAYS_MS[0]);
+    return {
+      ok: false,
+      provider: "webhook",
+      status: res.status,
+      error: "webhook_error",
+      detail: `HTTP ${res.status}`,
+      attempts: 1,
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return { ok: false, provider: "webhook", error: "network", detail, attempts: 1 };
   }
+}
 
-  return last;
+/**
+ * Alarm-Kanal: benachrichtigt einen externen Webhook, wenn eine Anfrage nicht
+ * zugestellt werden konnte. Damit wird ein Ausfall sichtbar, statt nur im
+ * KV-Archiv zu liegen. Fehler hier dürfen den Request nie beeinflussen.
+ */
+export async function sendAlertWebhook(
+  env: MailEnv,
+  payload: Record<string, unknown>,
+  fetchImpl: FetchLike = fetch
+): Promise<boolean> {
+  const url = (env.KONTAKT_ALERT_WEBHOOK || "").trim();
+  if (!url) return false;
+  try {
+    const res = await fetchWithTimeout(
+      fetchImpl,
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "mohr-more.biz/api/kontakt", ...payload }),
+      },
+      ALERT_TIMEOUT_MS
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export function escapeHtml(value: string): string {

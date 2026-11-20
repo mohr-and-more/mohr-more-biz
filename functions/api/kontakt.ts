@@ -23,7 +23,11 @@
  *      Ausgang des Mailversands gespeichert.
  *   2. Primär: Cloudflare Email Sending (REST, bis zu 3 Versuche).
  *   3. Falls das scheitert: optionaler `KONTAKT_FALLBACK_WEBHOOK`.
- *   4. Erst wenn weder Mail noch Webhook zustellen und nichts archiviert werden
+ *   4. Scheitert beides, wird ein Alarm über `KONTAKT_ALERT_WEBHOOK` ausgelöst
+ *      und der Eintrag bleibt als `failed` im Archiv. Der geplante Lauf von
+ *      POST /api/kontakt/retry stellt ihn danach erneut zu; GET
+ *      /api/kontakt/queue macht ihn sichtbar.
+ *   5. Erst wenn weder Mail noch Webhook zustellen und nichts archiviert werden
  *      konnte, antwortet der Endpunkt mit 502/503 — das Formular bietet dann
  *      einen vorausgefüllten mailto:-Link als letzten Ausweg an.
  *
@@ -46,6 +50,7 @@ import {
   buildInquiryMail,
   mailConfigured,
   missingMailConfig,
+  sendAlertWebhook,
   sendViaCloudflareEmail,
   sendViaWebhook,
   type MailEnv,
@@ -90,7 +95,7 @@ type Validation = {
 };
 
 function validate(body: FormData | URLSearchParams): Validation {
-  const get = (k: string) => (body.get(k) == null ? "" : String(body.get(k))).trim();
+  const get = (k: string) => (body.get(k) == null ? "" : String(body.get(k)).trim());
 
   if (get("website")) {
     // Honeypot ausgelöst — Bot vermutet, aber wir antworten trotzdem 200,
@@ -155,6 +160,8 @@ type ArchiveRecord = Inquiry & {
   id: string;
   createdAt: string;
   delivery: "pending" | "sent" | "webhook" | "failed" | "not_configured";
+  retryCount: number;
+  lastAttemptAt?: string;
   ipHash: string;
 };
 
@@ -192,7 +199,11 @@ async function markArchive(
   }
 }
 
-export const onRequest = async (context: { env: Env; request: Request }) => {
+export const onRequest = async (context: {
+  env: Env;
+  request: Request;
+  waitUntil?: (promise: Promise<unknown>) => void;
+}) => {
   const request = context.request;
   if (request.method === "OPTIONS") {
     return new Response(null, {
@@ -211,10 +222,14 @@ export const onRequest = async (context: { env: Env; request: Request }) => {
       headers: { allow: "POST, OPTIONS", "content-type": "text/plain; charset=utf-8" },
     });
   }
-  return handlePost(context.env ?? {}, request);
+  return handlePost(context.env ?? {}, request, context.waitUntil);
 };
 
-async function handlePost(env: Env, req: Request): Promise<Response> {
+async function handlePost(
+  env: Env,
+  req: Request,
+  waitUntil?: (promise: Promise<unknown>) => void
+): Promise<Response> {
   // IP aus Headers lesen (Cloudflare setzt CF-Connecting-IP)
   const ip =
     req.headers.get("cf-connecting-ip") ||
@@ -263,6 +278,7 @@ async function handlePost(env: Env, req: Request): Promise<Response> {
     id,
     createdAt,
     delivery: "pending",
+    retryCount: 0,
     ipHash: await hashIp(ip),
   };
 
@@ -290,6 +306,7 @@ async function handlePost(env: Env, req: Request): Promise<Response> {
   }
 
   record.delivery = delivery;
+  record.lastAttemptAt = new Date().toISOString();
   await markArchive(archive, record);
 
   // 4. Diagnose-Log: nur Metadaten, keine Klartext-Personendaten.
@@ -313,6 +330,29 @@ async function handlePost(env: Env, req: Request): Promise<Response> {
   };
   if (result.ok) console.log(JSON.stringify(log));
   else console.error(JSON.stringify(log));
+
+  if (!result.ok) {
+    // 5. Alarm: eine nicht zugestellte Anfrage darf nicht nur im Archiv liegen.
+    const alert = sendAlertWebhook(env, {
+      evt: "kontakt.delivery_failed",
+      id,
+      createdAt,
+      delivery,
+      archived: archive.stored,
+      error: result.error ?? "unknown",
+      detail: result.detail,
+      attempts: result.attempts,
+      name: inquiry.name,
+      company: inquiry.company,
+      email: inquiry.email,
+      betreff: inquiry.betreff,
+      quelle: inquiry.quelle,
+      lang: inquiry.lang,
+      retry_hint: archive.stored ? "POST /api/kontakt/retry stellt die Anfrage erneut zu." : undefined,
+    }).catch(() => false);
+    if (waitUntil) waitUntil(alert);
+    else await alert;
+  }
 
   const headers = { "access-control-allow-origin": "*" };
 
