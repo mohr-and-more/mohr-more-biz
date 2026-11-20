@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Context7AskNote, Context7AskVerification } from "@/components/context7-ask";
 import { FontStylesheets } from "@/components/font-stylesheets";
 import "./globals.css";
 
@@ -15,8 +16,10 @@ export default function NotFound() {
     <html lang="de">
       <head>
         <FontStylesheets />
+        <Context7AskVerification />
       </head>
       <body className="antialiased">
+        <Context7AskNote />
         <main
           style={{
             minHeight: "100vh",

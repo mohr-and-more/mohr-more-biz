@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../globals.css";
 import { ClientLayout } from "@/components/client-layout";
+import { Context7AskNote, Context7AskVerification } from "@/components/context7-ask";
 import { FontStylesheets } from "@/components/font-stylesheets";
 
 /**
@@ -38,8 +39,10 @@ export default function DeRootLayout({ children }: { children: React.ReactNode }
     <html lang="de">
       <head>
         <FontStylesheets />
+        <Context7AskVerification />
       </head>
       <body className="antialiased">
+        <Context7AskNote />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

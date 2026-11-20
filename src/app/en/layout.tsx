@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClientLayoutEn } from "@/components/client-layout-en";
+import { Context7AskNote, Context7AskVerification } from "@/components/context7-ask";
 import { FontStylesheets } from "@/components/font-stylesheets";
 import { SITE } from "@/data/services";
 import "../globals.css";
@@ -51,8 +52,10 @@ export default function EnRootLayout({ children }: { children: React.ReactNode }
     <html lang="en">
       <head>
         <FontStylesheets />
+        <Context7AskVerification />
       </head>
       <body className="antialiased">
+        <Context7AskNote />
         <ClientLayoutEn>{children}</ClientLayoutEn>
       </body>
     </html>
