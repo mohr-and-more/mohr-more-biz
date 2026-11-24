@@ -54,6 +54,9 @@ if (!token) {
       `Einrichtung: ${DOC}, Schritt 3 und 5.`,
     ].join("\n")
   );
+  console.error(
+    "\nStatus: Secrets fehlen — ohne KONTAKT_RETRY_TOKEN sind retry und queue nicht prüfbar; KV-Binding und Mailversand bleiben ungeprüft."
+  );
   process.exit(1);
 }
 
@@ -269,10 +272,31 @@ console.log(
   `\nErgebnis: ${okCount}/${results.length} Prüfungen bestanden${warnCount ? `, ${warnCount} Hinweis(e)` : ""}.`
 );
 
-if (!mailWorked) {
-  console.log("Mailversand ist nicht belegt — ohne funktionierenden Versand bleibt nur Archiv + Retry.");
-}
+// Ampel: greifen Secrets, KV-Binding und Mailversand schon?
+const secretsResult = results.find((r) => r.name === "Archiv erreichbar");
+const archiveResult = results.find((r) => r.name === "Archiv");
+const capabilities = [
+  {
+    label: "Secrets (KONTAKT_RETRY_TOKEN für retry/queue)",
+    ok: secretsResult?.ok === true,
+    detail: secretsResult?.detail ?? "nicht geprüft",
+  },
+  {
+    label: "KV-Binding KONTAKT_ARCHIVE",
+    ok: archiveResult?.ok === true,
+    detail: archiveResult?.detail ?? "nicht geprüft",
+  },
+  {
+    label: "Mailversand",
+    ok: mailWorked,
+    detail: "keine Zustellung belegt (Mailversand/Retry oben)",
+  },
+];
 
+console.log("\nStatus:");
+for (const item of capabilities) {
+  console.log(`  ${item.ok ? "✓" : "✗"} ${item.label}${item.ok ? "" : ` — ${item.detail}`}`);
+}
 const warned = results.filter((r) => !r.ok && r.warn);
 const failed = results.filter((r) => !r.ok && !r.warn);
 
