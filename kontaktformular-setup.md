@@ -162,7 +162,10 @@ Das Skript (`scripts/check-kontakt-live.mjs`) prüft in einem Lauf: Token und
 Archiv erreichbar, Testmail (optional), eine echte als „Live-Check“ markierte
 Anfrage durchs Formular, deren Eintrag im Archiv und den Retry-Lauf. Exit-Code
 0 nur, wenn Mailversand, Archiv und Retry belegt sind; sonst nennt es pro
-Fehlschlag die Ursache und den passenden Schritt dieser Anleitung.
+Fehlschlag die Ursache und den passenden Schritt dieser Anleitung. Am Ende
+steht eine Ampel für die drei Fragen, um die es bei der Aktivierung geht:
+Secrets (`KONTAKT_RETRY_TOKEN`), KV-Binding (`KONTAKT_ARCHIVE`) und
+Mailversand — jeweils ✓ oder ✗ mit dem Grund.
 
 Vor der Einrichtung (Ist-Zustand ohne Secrets):
 
