@@ -57,12 +57,12 @@ Dashboard → **Workers & Pages** → Projekt `mohr-more` →
 **Settings** → **Variables and Secrets** → **Add** — jeweils für
 **Production** *und* **Preview**:
 
-| Name | Typ | Wert |
-|---|---|---|
-| `CF_EMAIL_ACCOUNT_ID` | Variable | Account-ID aus Schritt 2 |
-| `CF_EMAIL_API_TOKEN` | **Secret** | Token aus Schritt 2 |
-| `KONTAKT_RETRY_TOKEN` | **Secret** | selbst erzeugter Zufallswert, z. B. `openssl rand -hex 32` |
-| `KONTAKT_TEST_TOKEN` | **Secret** | zweiter, eigener Zufallswert (nicht derselbe wie oben) |
+| Name | Typ | Wert | Wann man ihn braucht |
+|---|---|---|---|
+| `CF_EMAIL_ACCOUNT_ID` | Variable | Account-ID aus Schritt 2 | Immer — ohne ihn antwortet das Formular mit `503 mail_not_configured` |
+| `CF_EMAIL_API_TOKEN` | **Secret** | Token aus Schritt 2 | Immer — ohne ihn kein Versand (`503 mail_not_configured`) |
+| `KONTAKT_RETRY_TOKEN` | **Secret** | selbst erzeugter Zufallswert, z. B. `openssl rand -hex 32` | Immer, sobald das Archiv genutzt wird — schützt `retry` und `queue` und ist Voraussetzung für den 30-Minuten-Lauf; ohne ihn `503 retry_disabled` bzw. `503 queue_disabled` |
+| `KONTAKT_TEST_TOKEN` | **Secret** | zweiter, eigener Zufallswert (nicht derselbe wie oben) | Nur zum Prüfen — für `npm run mail:test` und die optionale Testmail in `npm run kontakt:check`; für den normalen Formularbetrieb nicht nötig |
 
 Pro Eintrag: Namen und Wert eintragen, bei Secrets **Encrypt** wählen, dann
 **Save**.
@@ -72,17 +72,22 @@ denselben Weg wie das Formular, Aufruf über `npm run mail:test`) und wird von
 `npm run kontakt:check` als `--test-token` für die Testmail im Live-Check
 genutzt. Zusätzlich akzeptieren `POST /api/kontakt/retry` und
 `GET /api/kontakt/queue` es ersatzweise, falls `KONTAKT_RETRY_TOKEN` fehlt.
-Ohne den Wert bleibt der Test-Endpunkt mit `503 test_disabled` abgeschaltet.
+Ohne den Wert bleibt der Test-Endpunkt mit `503 test_disabled` abgeschaltet —
+das Formular selbst sendet unabhängig davon.
+
+`KONTAKT_RATE_KV` ist kein Secret, sondern ein KV-Binding: Es zählt je
+IP-Adresse (Schlüssel `kontakt:<ip>`, Ablauf 10 Minuten) und ist der einzige
+Schutz gegen mehrfaches Absenden. Fehlt es, wird jede Anfrage durchgelassen.
 
 Optional:
 
-| Name | Zweck |
-|---|---|
-| `KONTAKT_TO_EMAIL` | Empfänger, Default `info@mohr-more.biz` |
-| `KONTAKT_FROM_EMAIL` | Absender, Default `kontakt@mohr-more.biz` |
-| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt |
-| `KONTAKT_FALLBACK_WEBHOOK` | zweiter Zustellweg, falls der Mailversand scheitert |
-| `KONTAKT_RATE_KV` | **KV-Binding** (keine Variable): begrenzt Einreichungen auf 3 pro 10 Minuten je IP, Antwort dann `429 rate_limit`. Namespace wie in Schritt 4 anlegen und als **Variable name** exakt `KONTAKT_RATE_KV` binden — ohne Binding gibt es kein Rate-Limit |
+| Name | Zweck | Wann nötig |
+|---|---|---|
+| `KONTAKT_TO_EMAIL` | Empfänger, Default `info@mohr-more.biz` | Nur wenn die Anfragen an eine andere Adresse gehen sollen |
+| `KONTAKT_FROM_EMAIL` | Absender, Default `kontakt@mohr-more.biz` | Nur wenn ein anderer Absender auf der onboardeten Domain gewünscht ist |
+| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt | Empfohlen, sobald echte Anfragen eingehen — sonst bleibt ein Zustellfehler nur im Archiv und im Log |
+| `KONTAKT_FALLBACK_WEBHOOK` | zweiter Zustellweg, falls der Mailversand scheitert | Optional — nur wenn neben der Mail ein zweiter, unabhängiger Weg existiert |
+| `KONTAKT_RATE_KV` | **KV-Binding** (keine Variable): begrenzt Einreichungen auf 3 pro 10 Minuten je IP, Antwort dann `429 rate_limit`. Namespace wie in Schritt 4 anlegen und als **Variable name** exakt `KONTAKT_RATE_KV` binden | Sobald das Formular öffentlich erreichbar ist — empfohlen gegen Mehrfach-Einsendungen; ohne Binding gibt es kein Limit, der Endpunkt bleibt offen |
 
 ## 4. KV-Binding `KONTAKT_ARCHIVE` anlegen
 
