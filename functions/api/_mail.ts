@@ -61,10 +61,12 @@ type FetchLike = typeof fetch;
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 /**
  * Kurze Timeouts: die Summe aus Versuchen und Wartezeiten muss deutlich unter
- * dem Zeitlimit einer Pages Function bleiben. Worst Case hier:
- * 3 × 3,5 s + 0,7 s Wartezeit = 11,2 s (plus optional 3 s Alarm-Webhook).
+ * dem Zeitlimit einer Pages Function bleiben — der Besucher wartet so lange
+ * vor dem Formular. Worst Case: 3 × 2,5 s + 0,7 s Wartezeit = 8,2 s.
+ * Was hier nicht durchgeht, holt der Retry-Lauf nach; deshalb lieber früher
+ * aufgeben als das Budget einer Anfrage auszureizen.
  */
-const REQUEST_TIMEOUT_MS = 3500;
+const REQUEST_TIMEOUT_MS = 2500;
 const ALERT_TIMEOUT_MS = 3000;
 /** Wartezeiten zwischen den Versuchen (Länge bestimmt die Anzahl der Retries). */
 const RETRY_DELAYS_MS = [200, 500];
