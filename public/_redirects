@@ -1,2 +1,4 @@
-/ueber-uns	/de/ueber-uns	302
-/en/imprint	/en/legal	302
+# Dauerhafte Umzüge: 301, damit Suchmaschinen die alte URL ersetzen
+# statt sie dauerhaft als „temporär" mitzuführen.
+/ueber-uns	/de/ueber-uns	301
+/en/imprint	/en/legal	301
