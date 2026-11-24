@@ -56,7 +56,8 @@ als `kontakt.delivery_failed` mit `provider_error` erscheint.
 
 Dashboard → **My Profile** → **API Tokens** → **Create Token**
 (alternativ **Manage Account** → **API Tokens** für einen Account-Token, der
-nicht an eine Person gebunden ist) → *Create Custom Token*:
+nicht an eine Person gebunden ist) → Vorlage *Start from scratch* bzw.
+**Create Custom Token**:
 
 - **Policy type:** Account
 - **Permission:** **Email Sending: Edit**
@@ -107,7 +108,7 @@ Optional:
 |---|---|---|
 | `KONTAKT_TO_EMAIL` | Empfänger, Default `info@mohr-more.biz` | Nur wenn die Anfragen an eine andere Adresse gehen sollen |
 | `KONTAKT_FROM_EMAIL` | Absender, Default `kontakt@mohr-more.biz` | Nur wenn ein anderer Absender auf der onboardeten Domain gewünscht ist |
-| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt | Empfohlen, sobald echte Anfragen eingehen — sonst bleibt ein Zustellfehler nur im Archiv und im Log. Für Alarme des Retry-Crons denselben Wert zusätzlich als GitHub-Secret hinterlegen (Schritt 5) |
+| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt — Payload enthält nur ID, Zeitpunkt, Fehlerart und Versuche, keine Namen oder Adressen | Empfohlen, sobald echte Anfragen eingehen — sonst bleibt ein Zustellfehler nur im Archiv und im Log. Für Alarme des Retry-Crons denselben Wert zusätzlich als GitHub-Secret hinterlegen (Schritt 5) |
 | `KONTAKT_FALLBACK_WEBHOOK` | zweiter Zustellweg, falls der Mailversand scheitert | Optional — nur wenn neben der Mail ein zweiter, unabhängiger Weg existiert |
 | `KONTAKT_RATE_KV` | **KV-Binding** (keine Variable): begrenzt Einreichungen auf 3 pro 10 Minuten je IP, Antwort dann `429 rate_limit`. Namespace wie in Schritt 4 anlegen und als **Variable name** exakt `KONTAKT_RATE_KV` binden | Sobald das Formular öffentlich erreichbar ist — empfohlen gegen Mehrfach-Einsendungen; ohne Binding gibt es kein Limit, der Endpunkt bleibt offen |
 
@@ -179,7 +180,14 @@ KONTAKT_RETRY_TOKEN=<TOKEN> npm run kontakt:check
 # andere Umgebung: --url=https://<preview-host>
 ```
 
-Das Skript (`scripts/check-kontakt-live.mjs`) prüft in einem Lauf: Token und
+Ohne Live-Zugriff prüfbar (Stubs für Provider, Alarm und KV):
+
+```bash
+node scripts/test-kontakt-chain.mjs        # 21 Prüfungen der ganzen Strecke
+node scripts/test-kontakt-retry-budget.mjs  # Abbruch mitten im Retry-Lauf
+```
+
+Das Skript (`scripts/check-kontakt-live.mjs`) prüft live in einem Lauf: Token und
 Archiv erreichbar, Testmail (optional), eine echte als „Live-Check“ markierte
 Anfrage durchs Formular, deren Eintrag im Archiv und den Retry-Lauf. Exit-Code
 0 nur, wenn Mailversand, Archiv und Retry belegt sind; sonst nennt es pro
@@ -220,6 +228,7 @@ Archiv gespeichert und wird beim nächsten Retry-Lauf nachgestellt.
 | `503 mail_not_configured` | Schritt 3 fehlt oder es wurde nach dem Setzen nicht neu deployed (Schritt 6) |
 | `502 mail_failed` | Token ungültig/abgelaufen, Domain nicht onboarded (Schritt 1) oder Account nicht im Workers-Paid-Plan — Details stehen im Pages-Log |
 | `200 {"delivery":"queued"}` | Mailversand scheitert, Anfrage liegt im Archiv; Retry-Lauf und `queue` zeigen sie |
+| `429 rate_limit` | mehr als 3 gültige Anfragen in 10 Minuten von derselben IP — `Retry-After` nennt die Wartezeit |
 | `503 queue_disabled` | `KONTAKT_RETRY_TOKEN` fehlt in den Pages-Variablen |
 | `503 no_archive` | Schritt 4 fehlt (Binding nicht gesetzt oder Name nicht `KONTAKT_ARCHIVE`) |
 | Retry-Workflow „übersprungen" | GitHub-Secret `KONTAKT_RETRY_TOKEN` fehlt (Schritt 5) |
@@ -228,7 +237,8 @@ Archiv gespeichert und wird beim nächsten Retry-Lauf nachgestellt.
 
 Logs: Cloudflare Dashboard → Pages-Projekt → **Functions → Logs**. Dort stehen
 `kontakt.delivered` bzw. `kontakt.delivery_failed` als JSON — mit Metadaten
-(ID, Provider, Versuche, Fehlertext), aber ohne Klartext-Nachricht.
+(ID, Provider, Versuche, Fehlertext, Domain), aber ohne Name, Adresse oder
+Nachricht.
 
 ## Quellen (geprüft am 24.11.2026)
 
