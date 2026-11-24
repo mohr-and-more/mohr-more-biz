@@ -37,6 +37,15 @@ export interface MailMessage {
   replyTo?: string;
 }
 
+export interface SendOptions {
+  /**
+   * Absoluter Zeitpunkt (ms seit Epoch), zu dem der Versand aufgeben muss.
+   * Gedacht für Aufrufer mit eigenem Zeitbudget (z. B. den Retry-Lauf), die
+   * lieber sauber abbrechen als mitten im Versand abgeschnitten zu werden.
+   */
+  deadline?: number;
+}
+
 export interface MailResult {
   ok: boolean;
   provider: "cloudflare-email" | "webhook";
@@ -129,11 +138,24 @@ function describeCfErrors(body: unknown, status: number): string {
 export async function sendViaCloudflareEmail(
   env: MailEnv,
   mail: MailMessage,
-  fetchImpl: FetchLike = fetch
+  fetchImpl: FetchLike = fetch,
+  options: SendOptions = {}
 ): Promise<MailResult> {
   if (!mailConfigured(env)) {
     return { ok: false, provider: "cloudflare-email", error: "not_configured", attempts: 0 };
   }
+
+  /** Verbleibendes Zeitbudget; ohne Deadline unbegrenzt. */
+  const remaining = () =>
+    options.deadline === undefined ? Number.POSITIVE_INFINITY : options.deadline - Date.now();
+  /** Sauberer Abbruch statt eines vom Lauf abgeschnittenen Requests. */
+  const deadlineExceeded = (attempts: number): MailResult => ({
+    ok: false,
+    provider: "cloudflare-email",
+    error: "deadline_exceeded",
+    detail: "Zeitbudget des Aufrufers aufgebraucht",
+    attempts,
+  });
 
   const accountId = (env.CF_EMAIL_ACCOUNT_ID || "").trim();
   const token = (env.CF_EMAIL_API_TOKEN || "").trim();
@@ -156,15 +178,22 @@ export async function sendViaCloudflareEmail(
   };
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (remaining() <= 0) return deadlineExceeded(attempt - 1);
+    const attemptTimeoutMs = Math.min(REQUEST_TIMEOUT_MS, Math.max(remaining(), 250));
     try {
-      const res = await fetchWithTimeout(fetchImpl, url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const res = await fetchWithTimeout(
+        fetchImpl,
+        url,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+        attemptTimeoutMs
+      );
 
       const raw = await res.text();
       let body: unknown = null;
@@ -208,10 +237,16 @@ export async function sendViaCloudflareEmail(
         detail,
         attempts: attempt,
       };
+      // Der Abbruch kann von der eigenen Deadline stammen (Timeout auf
+      // Restzeit) — dann ist das kein Provider-Fehler, sondern ein sauberer
+      // Stopp, den der Aufrufer unverändert lassen soll.
+      if (remaining() <= 0) return deadlineExceeded(attempt);
       if (attempt === maxAttempts) return last;
     }
 
-    await sleep(RETRY_DELAYS_MS[attempt - 1]);
+    const delay = RETRY_DELAYS_MS[attempt - 1];
+    if (remaining() <= delay) return deadlineExceeded(attempt);
+    await sleep(delay);
   }
 
   return last;
