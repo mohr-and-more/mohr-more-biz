@@ -62,9 +62,17 @@ Dashboard → **Workers & Pages** → Projekt `mohr-more` →
 | `CF_EMAIL_ACCOUNT_ID` | Variable | Account-ID aus Schritt 2 |
 | `CF_EMAIL_API_TOKEN` | **Secret** | Token aus Schritt 2 |
 | `KONTAKT_RETRY_TOKEN` | **Secret** | selbst erzeugter Zufallswert, z. B. `openssl rand -hex 32` |
+| `KONTAKT_TEST_TOKEN` | **Secret** | zweiter, eigener Zufallswert (nicht derselbe wie oben) |
 
 Pro Eintrag: Namen und Wert eintragen, bei Secrets **Encrypt** wählen, dann
 **Save**.
+
+`KONTAKT_TEST_TOKEN` schaltet `POST /api/kontakt/test` frei (Testmail über
+denselben Weg wie das Formular, Aufruf über `npm run mail:test`) und wird von
+`npm run kontakt:check` als `--test-token` für die Testmail im Live-Check
+genutzt. Zusätzlich akzeptieren `POST /api/kontakt/retry` und
+`GET /api/kontakt/queue` es ersatzweise, falls `KONTAKT_RETRY_TOKEN` fehlt.
+Ohne den Wert bleibt der Test-Endpunkt mit `503 test_disabled` abgeschaltet.
 
 Optional:
 
@@ -74,6 +82,7 @@ Optional:
 | `KONTAKT_FROM_EMAIL` | Absender, Default `kontakt@mohr-more.biz` |
 | `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt |
 | `KONTAKT_FALLBACK_WEBHOOK` | zweiter Zustellweg, falls der Mailversand scheitert |
+| `KONTAKT_RATE_KV` | **KV-Binding** (keine Variable): begrenzt Einreichungen auf 3 pro 10 Minuten je IP, Antwort dann `429 rate_limit`. Namespace wie in Schritt 4 anlegen und als **Variable name** exakt `KONTAKT_RATE_KV` binden — ohne Binding gibt es kein Rate-Limit |
 
 ## 4. KV-Binding `KONTAKT_ARCHIVE` anlegen
 
