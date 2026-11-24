@@ -43,7 +43,8 @@
  *   - Zugestellt wird per E-Mail an MOHR & MORE; optionale Archivierung im KV
  *     ist auf 30 Tage begrenzt (Archiv-Eintrag enthält die Anfrage, nicht die IP;
  *     die IP wird nur als 12-stelliger SHA-256-Hash geloggt).
- *   - Server-Logs enthalten keine Klartext-Personendaten (nur Metadaten).
+ *   - Server-Logs und Alarm-Payload enthalten keine Klartext-Personendaten
+ *     (nur ID, Metadaten und Längen).
  */
 
 import {
@@ -56,25 +57,20 @@ import {
   type MailEnv,
   type MailResult,
 } from "./_mail.ts";
-
-interface KVNamespace {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-}
+import {
+  ARCHIVE_TTL_SECONDS,
+  archiveKey,
+  type ArchiveKV,
+  type ArchiveRecord,
+} from "./_archive.ts";
 
 type Env = MailEnv & {
-  KONTAKT_RATE_KV?: KVNamespace;
+  KONTAKT_RATE_KV?: ArchiveKV;
   /** Optionales KV-Archiv (Binding-Name: KONTAKT_ARCHIVE). */
-  KONTAKT_ARCHIVE?: KVNamespace;
+  KONTAKT_ARCHIVE?: ArchiveKV;
 };
 
-interface KVNamespaceLike {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-}
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const ARCHIVE_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 type Inquiry = {
   name: string;
@@ -156,15 +152,6 @@ async function isRateLimited(env: Env, ip: string): Promise<boolean> {
   return false;
 }
 
-type ArchiveRecord = Inquiry & {
-  id: string;
-  createdAt: string;
-  delivery: "pending" | "sent" | "webhook" | "failed" | "not_configured";
-  retryCount: number;
-  lastAttemptAt?: string;
-  ipHash: string;
-};
-
 /**
  * Schreibt die Anfrage vor dem Versand in den KV-Bucket. Gibt zurück, ob sie
  * tatsächlich gespeichert werden konnte — davon hängt ab, ob der Client bei
@@ -173,9 +160,9 @@ type ArchiveRecord = Inquiry & {
 async function archiveInquiry(
   env: Env,
   record: ArchiveRecord
-): Promise<{ stored: boolean; kv?: KVNamespaceLike; key: string }> {
+): Promise<{ stored: boolean; kv?: ArchiveKV; key: string }> {
   const kv = env.KONTAKT_ARCHIVE;
-  const key = `kontakt:${record.createdAt}:${record.id}`;
+  const key = archiveKey(record);
   if (!kv) return { stored: false, key };
   try {
     await kv.put(key, JSON.stringify(record), { expirationTtl: ARCHIVE_TTL_SECONDS });
@@ -186,7 +173,7 @@ async function archiveInquiry(
 }
 
 async function markArchive(
-  archive: { stored: boolean; kv?: KVNamespaceLike; key: string },
+  archive: { stored: boolean; kv?: ArchiveKV; key: string },
   record: ArchiveRecord
 ): Promise<void> {
   if (!archive.stored || !archive.kv) return;
@@ -288,21 +275,19 @@ async function handlePost(
   // 2. Mail bauen und zustellen.
   const mail = buildInquiryMail({ ...inquiry, id, createdAt });
   let result: MailResult = await sendViaCloudflareEmail(env, mail);
-  let delivery: ArchiveRecord["delivery"] = "failed";
+  let delivery: ArchiveRecord["delivery"] = result.ok
+    ? "sent"
+    : result.error === "not_configured"
+      ? "not_configured"
+      : "failed";
 
-  if (result.ok) {
-    delivery = "sent";
-  } else if ((env.KONTAKT_FALLBACK_WEBHOOK || "").trim()) {
-    // 3. Zweiter Zustellweg, falls der Mailversand scheitert.
+  // 3. Zweiter Zustellweg, falls der Mailversand scheitert (opt-in).
+  if (!result.ok && (env.KONTAKT_FALLBACK_WEBHOOK || "").trim()) {
     const fallback = await sendViaWebhook(env, mail);
     if (fallback.ok) {
       delivery = "webhook";
       result = fallback;
     }
-  }
-
-  if (!result.ok && result.error === "not_configured" && delivery !== "webhook") {
-    delivery = "not_configured";
   }
 
   record.delivery = delivery;
@@ -321,10 +306,9 @@ async function handlePost(
     error: result.error,
     detail: result.detail,
     lang: inquiry.lang,
-    betreff: inquiry.betreff || undefined,
-    quelle: inquiry.quelle || undefined,
+    // Kein Klartext aus der Anfrage: Betreff und E-Mail-Domain können Namen
+    // und Firmen verraten. Längen genügen zur Diagnose.
     name_len: inquiry.name.length,
-    email_domain: inquiry.email.split("@")[1] ?? "?",
     msg_len: inquiry.message.length,
     missing_config: mailConfigured(env) ? undefined : missingMailConfig(env),
   };
@@ -342,13 +326,12 @@ async function handlePost(
       error: result.error ?? "unknown",
       detail: result.detail,
       attempts: result.attempts,
-      name: inquiry.name,
-      company: inquiry.company,
-      email: inquiry.email,
-      betreff: inquiry.betreff,
-      quelle: inquiry.quelle,
       lang: inquiry.lang,
+      // Bewusst ohne Name, Adresse und Nachricht: der Alarm geht an einen
+      // externen Kanal (Slack/n8n). Inhalt und Kontaktdaten stehen im Archiv
+      // und sind über `GET /api/kontakt/queue` mit Token abrufbar.
       retry_hint: archive.stored ? "POST /api/kontakt/retry stellt die Anfrage erneut zu." : undefined,
+      queue_hint: archive.stored ? "Details: GET /api/kontakt/queue mit Token." : undefined,
     }).catch(() => false);
     if (waitUntil) waitUntil(alert);
     else await alert;
@@ -358,7 +341,7 @@ async function handlePost(
 
   if (result.ok) {
     return jsonResponse(
-      { ok: true, id, delivery: delivery === "webhook" ? "webhook" : "sent", archived: archive.stored },
+      { ok: true, id, delivery, archived: archive.stored },
       200,
       headers
     );
