@@ -85,7 +85,7 @@ Optional:
 |---|---|---|
 | `KONTAKT_TO_EMAIL` | Empfänger, Default `info@mohr-more.biz` | Nur wenn die Anfragen an eine andere Adresse gehen sollen |
 | `KONTAKT_FROM_EMAIL` | Absender, Default `kontakt@mohr-more.biz` | Nur wenn ein anderer Absender auf der onboardeten Domain gewünscht ist |
-| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt | Empfohlen, sobald echte Anfragen eingehen — sonst bleibt ein Zustellfehler nur im Archiv und im Log |
+| `KONTAKT_ALERT_WEBHOOK` | Alarm-Kanal (Slack/n8n), der bei jeder nicht zugestellten Anfrage benachrichtigt | Empfohlen, sobald echte Anfragen eingehen — sonst bleibt ein Zustellfehler nur im Archiv und im Log. Für Alarme des Retry-Crons denselben Wert zusätzlich als GitHub-Secret hinterlegen (Schritt 5) |
 | `KONTAKT_FALLBACK_WEBHOOK` | zweiter Zustellweg, falls der Mailversand scheitert | Optional — nur wenn neben der Mail ein zweiter, unabhängiger Weg existiert |
 | `KONTAKT_RATE_KV` | **KV-Binding** (keine Variable): begrenzt Einreichungen auf 3 pro 10 Minuten je IP, Antwort dann `429 rate_limit`. Namespace wie in Schritt 4 anlegen und als **Variable name** exakt `KONTAKT_RATE_KV` binden | Sobald das Formular öffentlich erreichbar ist — empfohlen gegen Mehrfach-Einsendungen; ohne Binding gibt es kein Limit, der Endpunkt bleibt offen |
 
@@ -121,6 +121,23 @@ Dieses Secret schützt die Endpunkte `POST /api/kontakt/retry` und
 `.github/workflows/kontakt-retry.yml` alle 30 Minuten verwendet. Fehlt es,
 überspringt der Workflow den Lauf (kein Fehler) und die Endpunkte antworten mit
 `503 retry_disabled` bzw. `503 queue_disabled`.
+
+**Zusätzlich, wenn der Cron Fehlschläge melden soll:** derselbe Eintrag-Typ,
+
+- Name: **`KONTAKT_ALERT_WEBHOOK`**
+- Value: **exakt dieselbe Webhook-URL** wie die Pages-Variable aus der
+  optionalen Tabelle in Schritt 3
+
+Der Workflow kann die Pages-Variablen nicht lesen, deshalb braucht er den Wert
+eigen. Die Logik steht in `scripts/kontakt-retry-run.mjs` und lässt sich mit
+denselben Variablen auch lokal ausführen (`RETRY_URL=… RETRY_TOKEN=…
+ALERT_WEBHOOK=… node scripts/kontakt-retry-run.mjs`). Mit diesem Secret schickt
+der Lauf bei einem Fehlschlag — Endpunkt nicht erreichbar, HTTP-Status ungleich
+`200` oder `failed > 0` im Ergebnis —
+einen JSON-Post an den Kanal. Der Payload enthält `message`, `detail`, `run_url`
+und ein Slack-taugliches `text`; die Actions-Seite muss dafür niemand öffnen.
+Fehlt das Secret, steht im Lauf-Log nur eine `::warning::`-Zeile und der Lauf
+schlägt wie bisher rot fehl.
 
 ## 6. Redeploy
 
@@ -182,6 +199,8 @@ Archiv gespeichert und wird beim nächsten Retry-Lauf nachgestellt.
 | `503 queue_disabled` | `KONTAKT_RETRY_TOKEN` fehlt in den Pages-Variablen |
 | `503 no_archive` | Schritt 4 fehlt (Binding nicht gesetzt oder Name nicht `KONTAKT_ARCHIVE`) |
 | Retry-Workflow „übersprungen" | GitHub-Secret `KONTAKT_RETRY_TOKEN` fehlt (Schritt 5) |
+| Retry-Lauf rot, aber kein Alarm im Kanal | GitHub-Secret `KONTAKT_ALERT_WEBHOOK` fehlt (Schritt 5) oder der Webhook antwortet nicht — das Lauf-Log nennt beides als `::warning::` |
+| Alarm meldet `failed` > 0 | Der Endpunkt lief, konnte aber nicht zustellen: Schritte 1 und 2 prüfen, dann den Lauf erneut auslösen |
 
 Logs: Cloudflare Dashboard → Pages-Projekt → **Functions → Logs**. Dort stehen
 `kontakt.delivered` bzw. `kontakt.delivery_failed` als JSON — mit Metadaten
