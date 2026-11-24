@@ -1,50 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MOHR & MORE — mohr-more.biz
+
+Unternehmensseite von MOHR & MORE: Next.js 16 (App Router) als statischer
+Export nach `out/`, ausgeliefert über Cloudflare Pages. Die API-Routen unter
+`/api/*` laufen als Pages Functions aus `functions/`.
 
 ## Dokumentation
 
-- [kontaktformular-setup.md](kontaktformular-setup.md) — Cloudflare-Einrichtung des Kontaktformulars: Email Sending, API-Token, Pages-Variablen, KV-Binding `KONTAKT_ARCHIVE`, GitHub-Secret `KONTAKT_RETRY_TOKEN`, Redeploy.
-- [design-system.md](design-system.md) — Design System (Tokens, Komponenten) und Stand des Rollouts.
+- [kontaktformular-setup.md](kontaktformular-setup.md) — Cloudflare-Einrichtung des Kontaktformulars: Email Sending, API-Token, Pages-Variablen und Secrets, KV-Bindings, GitHub-Secrets, Redeploy.
+- [design-system.md](design-system.md) — Design System: Tokens, Komponenten, Aktivierungs-Checkliste und offene Punkte.
 
 ### Kontaktformular prüfen
 
 ```bash
-npm run mail:test                 # eine Testmail über /api/kontakt/test
-KONTAKT_RETRY_TOKEN=… npm run kontakt:check   # Live-Check: Mailversand, Archiv, Retry
+npm run mail:test                            # Testmail über /api/kontakt/test
+KONTAKT_RETRY_TOKEN=… npm run kontakt:check  # Live-Check: Mailversand, Archiv, Retry
 ```
 
-`kontakt:check` schickt eine als „Live-Check“ markierte Anfrage durch das Formular und belegt danach, ob sie zugestellt, archiviert und – falls nötig – nachgeliefert wurde. Details und Fehlerbehebung: [kontaktformular-setup.md](kontaktformular-setup.md).
+`kontakt:check` schickt eine als „Live-Check“ markierte Anfrage durch das
+Formular und belegt danach, ob sie zugestellt, archiviert und – falls nötig –
+nachgeliefert wurde. Einrichtung, Ursachen und Fehlerbehebung:
+[kontaktformular-setup.md](kontaktformular-setup.md).
 
-## Getting Started
+## Deploy
 
-First, run the development server:
+Jeder Push auf `main` startet die GitHub-Action **Deploy to Cloudflare Pages**
+(`.github/workflows/deploy.yml`):
+
+1. `npm ci`
+2. `npx next build` — statischer Export nach `out/`
+3. `cp -r functions out/functions` — die Pages Functions wandern mit ins Deployment
+4. `wrangler pages deploy out --project-name=mohr-more`
+
+Manuell derselbe Weg: GitHub → **Actions** → *Deploy to Cloudflare Pages* →
+**Run workflow** (Branch `main`).
+
+Variablen, Secrets und KV-Bindings greifen erst mit einem neuen Deployment —
+nach dem Setzen also neu deployen ([kontaktformular-setup.md](kontaktformular-setup.md),
+Schritt 6).
+
+Ein zweiter Workflow (`.github/workflows/kontakt-retry.yml`) stellt
+fehlgeschlagene Kontakt-Anfragen alle 30 Minuten nach und meldet einen
+Fehlschlag an den Alarm-Webhook.
+
+## Lokal entwickeln
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+npm run dev     # http://localhost:3000
+npx next build  # prüft genau den Export, den Cloudflare Pages ausliefert
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
