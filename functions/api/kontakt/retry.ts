@@ -31,45 +31,21 @@ import {
   sendViaCloudflareEmail,
   type MailEnv,
 } from "../_mail.ts";
-
-interface KVListResult {
-  keys: Array<{ name: string }>;
-  list_complete: boolean;
-  cursor?: string;
-}
-
-interface KVNamespace {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-  list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<KVListResult>;
-}
+import {
+  ARCHIVE_PREFIX,
+  ARCHIVE_TTL_SECONDS,
+  type ArchiveKV,
+  type ArchiveRecord,
+} from "../_archive.ts";
 
 type Env = MailEnv & {
-  KONTAKT_ARCHIVE?: KVNamespace;
+  KONTAKT_ARCHIVE?: ArchiveKV;
   KONTAKT_RETRY_TOKEN?: string;
   KONTAKT_TEST_TOKEN?: string;
   /** Optionales Zeitbudget pro Lauf in Millisekunden (1.000–25.000). */
   KONTAKT_RETRY_BUDGET_MS?: string;
 };
 
-type ArchiveRecord = {
-  name: string;
-  company: string;
-  email: string;
-  message: string;
-  betreff: string;
-  quelle: string;
-  page: string;
-  lang: string;
-  id: string;
-  createdAt: string;
-  delivery: "pending" | "sent" | "webhook" | "failed" | "not_configured";
-  retryCount?: number;
-  lastAttemptAt?: string;
-  ipHash?: string;
-};
-
-const PREFIX = "kontakt:";
 const MAX_ATTEMPTS = 5;
 const MIN_AGE_MS = 2 * 60 * 1000;
 const PENDING_STALE_MS = 10 * 60 * 1000;
@@ -79,7 +55,6 @@ const DEFAULT_RUN_BUDGET_MS = 20_000;
 const MAX_RUN_BUDGET_MS = 25_000;
 /** Unterhalb dieser Restzeit wird kein Eintrag mehr begonnen. */
 const MIN_ENTRY_BUDGET_MS = 2_500;
-const ARCHIVE_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -150,7 +125,7 @@ export const onRequest = async (context: {
   let cursor: string | undefined;
 
   outer: do {
-    const page = await kv.list({ prefix: PREFIX, limit: 100, cursor });
+    const page = await kv.list({ prefix: ARCHIVE_PREFIX, limit: 100, cursor });
     for (const { name } of page.keys) {
       if (scanned >= MAX_KEYS_PER_RUN) {
         stopped = "max_entries";
