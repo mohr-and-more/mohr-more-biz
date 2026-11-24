@@ -1,8 +1,10 @@
 name: Kontakt-Anfragen nachzustellen
 
-# Stellt Anfragen erneut zu, deren Mailversand gescheitert ist (KV-Archiv
-# Einträge mit delivery = failed/not_configured). Läuft alle 30 Minuten und
-# auf Zuruf. Ohne Secret `KONTAKT_RETRY_TOKEN` passiert nichts.
+# Stellt Anfragen aus dem KV-Archiv erneut zu, deren Mailversand gescheitert
+# ist. Läuft alle 30 Minuten und auf Zuruf. Die Logik — inklusive Alarm bei
+# Fehlschlag — steht in scripts/kontakt-retry-run.sh; ein Fehlschlag geht
+# zusätzlich an secrets.KONTAKT_ALERT_WEBHOOK (siehe
+# kontaktformular-setup.md, Schritt 5).
 on:
   schedule:
     - cron: "*/30 * * * *"
@@ -12,21 +14,12 @@ jobs:
   retry:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Retry pending contact inquiries
         env:
           RETRY_URL: ${{ vars.KONTAKT_RETRY_URL || 'https://mohr-more.biz/api/kontakt/retry' }}
           RETRY_TOKEN: ${{ secrets.KONTAKT_RETRY_TOKEN }}
-        run: |
-          if [ -z "$RETRY_TOKEN" ]; then
-            echo "KONTAKT_RETRY_TOKEN ist nicht gesetzt — Lauf übersprungen."
-            exit 0
-          fi
-          code=$(curl -sS --max-time 60 -X POST "$RETRY_URL" \
-            -H "x-retry-token: $RETRY_TOKEN" \
-            -o /tmp/retry.json -w '%{http_code}')
-          cat /tmp/retry.json
-          echo
-          if [ "$code" != "200" ]; then
-            echo "Retry-Lauf fehlgeschlagen (HTTP $code)."
-            exit 1
-          fi
+          ALERT_WEBHOOK: ${{ secrets.KONTAKT_ALERT_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/kontakt-retry-run.sh
