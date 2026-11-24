@@ -11,9 +11,10 @@ Nichts davon wird im Repo, im Code oder in einer Datei abgelegt.
 **Reihenfolge:** 1 → 2 → 3 → 4 → 5 → 6. Schritt 6 ist Pflicht, sonst greifen
 weder die Variablen aus Schritt 3 noch das Binding aus Schritt 4.
 
-**Voraussetzungen** (laut Cloudflare-Doku, Stand November 2026): Email Sending
+**Voraussetzungen** (laut Cloudflare-Doku, geprüft am 24.11.2026): Email Sending
 ist Beta und nur im **Workers Paid**-Plan verfügbar; die Domain muss über
-Cloudflare-DNS laufen.
+Cloudflare-DNS laufen. Enthalten sind 3.000 ausgehende Mails pro Monat,
+danach 0,35 US$ je 1.000.
 
 ---
 
@@ -53,9 +54,10 @@ automatisieren lässt. Die Account-ID steht zusätzlich im Dashboard unter
 
 ## 3. Pages-Variablen setzen
 
-Dashboard → **Workers & Pages** → Projekt `mohr-more` →
-**Settings** → **Variables and Secrets** → **Add** — jeweils für
-**Production** *und* **Preview**:
+Dashboard → **Workers & Pages**
+(direkt: `dash.cloudflare.com/?to=/:account/workers-and-pages`) →
+Projekt `mohr-more` → **Settings** → **Variables and Secrets** → **Add** —
+jeweils für **Production** *und* **Preview**:
 
 | Name | Typ | Wert | Wann man ihn braucht |
 |---|---|---|---|
@@ -95,9 +97,8 @@ Ohne Archiv gibt es nichts nachzustellen: Der Retry-Lauf hat dann keine Quelle
 und antwortet mit `no_archive`.
 
 **Namespace anlegen:** Dashboard → **Workers KV**
-(`dash.cloudflare.com/<account-id>/workers/kv/namespaces`, am schnellsten über
-die Dashboard-Suche nach „KV") → **Create instance** → Name z. B.
-`mohr-more-kontakt-archive` → **Create**.
+(direkt: `dash.cloudflare.com/?to=/:account/workers/kv/namespaces`) →
+**Create instance** → Name z. B. `mohr-more-kontakt-archive` → **Create**.
 
 **Binding setzen:** **Workers & Pages** → Projekt `mohr-more` →
 **Settings** → **Bindings** → **Add** → **KV namespace**:
@@ -209,9 +210,10 @@ Logs: Cloudflare Dashboard → Pages-Projekt → **Functions → Logs**. Dort st
 `kontakt.delivered` bzw. `kontakt.delivery_failed` als JSON — mit Metadaten
 (ID, Provider, Versuche, Fehlertext), aber ohne Klartext-Nachricht.
 
-## Quellen (geprüft am 20.11.2026)
+## Quellen (geprüft am 24.11.2026)
 
-- Email Sending einrichten: <https://developers.cloudflare.com/email-service/get-started/send-emails/>
+- Email Sending einrichten (Menüweg, Onboard Domain): <https://developers.cloudflare.com/email-service/get-started/send-emails/>
+- Pläne, Beta-Status und Inklusivvolumen: <https://developers.cloudflare.com/email-service/platform/pricing/>
 - REST-Endpunkt `POST /accounts/{account_id}/email/sending/send`: ebenda
 - Pages-Variablen und Secrets: <https://developers.cloudflare.com/pages/functions/bindings/#environment-variables> und <https://developers.cloudflare.com/pages/functions/bindings/#secrets>
 - KV-Binding im Pages-Projekt: <https://developers.cloudflare.com/pages/functions/bindings/#kv-namespaces>
