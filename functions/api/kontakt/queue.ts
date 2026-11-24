@@ -15,39 +15,14 @@
  */
 
 import type { MailEnv } from "../_mail.ts";
-
-interface KVListResult {
-  keys: Array<{ name: string }>;
-  list_complete: boolean;
-  cursor?: string;
-}
-
-interface KVNamespace {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-  list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<KVListResult>;
-}
+import { ARCHIVE_PREFIX, type ArchiveKV, type ArchiveRecord } from "../_archive.ts";
 
 type Env = MailEnv & {
-  KONTAKT_ARCHIVE?: KVNamespace;
+  KONTAKT_ARCHIVE?: ArchiveKV;
   KONTAKT_RETRY_TOKEN?: string;
   KONTAKT_TEST_TOKEN?: string;
 };
 
-type ArchiveRecord = {
-  name: string;
-  company: string;
-  email: string;
-  message?: string;
-  betreff: string;
-  createdAt: string;
-  id: string;
-  delivery: "pending" | "sent" | "webhook" | "failed" | "not_configured";
-  retryCount?: number;
-  lastAttemptAt?: string;
-};
-
-const PREFIX = "kontakt:";
 const MAX_SCAN = 500;
 const MAX_ENTRIES = 50;
 
@@ -102,7 +77,7 @@ export const onRequest = async (context: {
   let cursor: string | undefined;
 
   do {
-    const page = await kv.list({ prefix: PREFIX, limit: 100, cursor });
+    const page = await kv.list({ prefix: ARCHIVE_PREFIX, limit: 100, cursor });
     for (const { name } of page.keys) {
       if (scanned >= MAX_SCAN) break;
       scanned += 1;
