@@ -18,6 +18,26 @@ danach 0,35 US$ je 1.000.
 
 ---
 
+## Kurzfassung
+
+Sechs Schritte, jeweils ein Satz — Details und Fallstricke darunter.
+
+1. **Email Sending freischalten:** Compute → Email Service → Email Sending →
+   **Onboard Domain** → `mohr-more.biz` → **Done**.
+2. **API-Token anlegen:** My Profile → API Tokens → Create Token → Policy
+   Account, Permission **Email Sending: Edit**. Account-ID und Token notieren.
+3. **Pages-Variablen setzen:** Workers & Pages → `mohr-more` → Settings →
+   **Variables and Secrets** → Add: `CF_EMAIL_ACCOUNT_ID` (Variable),
+   `CF_EMAIL_API_TOKEN` und `KONTAKT_RETRY_TOKEN` (je **Encrypt**) — für
+   Production *und* Preview.
+4. **KV-Binding setzen:** Workers KV → **Create instance**
+   (`mohr-more-kontakt-archive`); dann Settings → **Bindings** → Add →
+   **KV namespace**, Variable name **`KONTAKT_ARCHIVE`** (Production + Preview).
+5. **GitHub-Secret:** Repo → Settings → Secrets and variables → Actions →
+   **`KONTAKT_RETRY_TOKEN`** mit exakt demselben Wert wie in Schritt 3.
+6. **Redeploy:** Actions → *Deploy to Cloudflare Pages* → **Run workflow**,
+   danach `KONTAKT_RETRY_TOKEN=… npm run kontakt:check` (Ampel 3× ✓).
+
 ## 1. Email Sending für die Domain freischalten
 
 Dashboard → **Compute** → **Email Service** → **Email Sending**
