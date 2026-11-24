@@ -43,8 +43,13 @@
  *   - Zugestellt wird per E-Mail an MOHR & MORE; optionale Archivierung im KV
  *     ist auf 30 Tage begrenzt (Archiv-Eintrag enthält die Anfrage, nicht die IP;
  *     die IP wird nur als 12-stelliger SHA-256-Hash geloggt).
- *   - Server-Logs und Alarm-Payload enthalten keine Klartext-Personendaten
- *     (nur ID, Metadaten und Längen).
+ *   - Server-Logs enthalten ID, Fehler, Zeitpunkt und höchstens die Domain der
+ *     Absenderadresse — keinen Namen, keine Adresse, keine Nachricht.
+ *     Der Alarm-Webhook bekommt nur ID, Fehler, Zeitpunkt und Zähler; E-Mails
+ *     in Fehlertexten werden vorher durch `[email]` ersetzt.
+ *   - Der optionale `KONTAKT_FALLBACK_WEBHOOK` ist ein bewusster zweiter
+ *     Zustellweg und überträgt den vollen Anfrageinhalt an das dort
+ *     konfigurierte Ziel — er gehört deshalb in die Datenschutzerklärung.
  */
 
 import {
@@ -304,12 +309,12 @@ async function handlePost(
     attempts: result.attempts,
     status: result.status,
     error: result.error,
-    detail: result.detail,
+    detail: redactEmails(result.detail),
     lang: inquiry.lang,
-    // Kein Klartext aus der Anfrage: Betreff und E-Mail-Domain können Namen
-    // und Firmen verraten. Längen genügen zur Diagnose.
-    name_len: inquiry.name.length,
-    msg_len: inquiry.message.length,
+    // Kein Name, keine Adresse, keine Nachricht: davon steht nichts im Log.
+    // Die Domain bleibt als einzige Zuordnung — sie zeigt eine Spam-Welle oder
+    // einen Kunden mit kaputtem MX, ohne einen Menschen zu identifizieren.
+    email_domain: emailDomain(inquiry.email),
     missing_config: mailConfigured(env) ? undefined : missingMailConfig(env),
   };
   if (result.ok) console.log(JSON.stringify(log));
@@ -324,7 +329,8 @@ async function handlePost(
       delivery,
       archived: archive.stored,
       error: result.error ?? "unknown",
-      detail: result.detail,
+      // Provider-Fehler können eine Adresse im Klartext mitsenden.
+      detail: redactEmails(result.detail),
       attempts: result.attempts,
       lang: inquiry.lang,
       // Bewusst ohne Name, Adresse und Nachricht: der Alarm geht an einen
@@ -365,11 +371,25 @@ async function handlePost(
   );
 }
 
+/**
+ * Ersetzt E-Mail-Adressen in Fehlertexten durch `[email]`. Cloudflare-Fehler
+ * können die Empfängeradresse im Klartext mitsenden; die darf weder ins Log
+ * noch an den Alarm-Webhook gehen.
+ */
+function redactEmails(text?: string): string | undefined {
+  return text?.replace(/[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+/g, "[email]");
+}
+
+/** Nur die Domain der Absenderadresse — Zuordnung ohne Kontaktdaten. */
+function emailDomain(email: string): string | undefined {
+  const domain = email.split("@")[1]?.trim().toLowerCase();
+  return domain || undefined;
+}
+
 async function hashIp(ip: string): Promise<string> {
   const data = new TextEncoder().encode(ip);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 12);
+    .join("");
 }
