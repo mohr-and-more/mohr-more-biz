@@ -20,7 +20,7 @@ jobs:
           cache: 'npm'
 
       - run: npm ci
-      - run: npx next build
+      - run: npm run build
 
       - name: Copy Cloudflare Pages Functions to output
         run: cp -r functions out/functions

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/context7-ask-headers.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/context7-ask-headers.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
