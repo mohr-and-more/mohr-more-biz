@@ -2,7 +2,7 @@ name: Kontakt-Anfragen nachzustellen
 
 # Stellt Anfragen aus dem KV-Archiv erneut zu, deren Mailversand gescheitert
 # ist. Läuft alle 30 Minuten und auf Zuruf. Die Logik — inklusive Alarm bei
-# Fehlschlag — steht in scripts/kontakt-retry-run.sh; ein Fehlschlag geht
+# Fehlschlag — steht in scripts/kontakt-retry-run.mjs; ein Fehlschlag geht
 # zusätzlich an secrets.KONTAKT_ALERT_WEBHOOK (siehe
 # kontaktformular-setup.md, Schritt 5).
 on:
@@ -22,4 +22,4 @@ jobs:
           RETRY_TOKEN: ${{ secrets.KONTAKT_RETRY_TOKEN }}
           ALERT_WEBHOOK: ${{ secrets.KONTAKT_ALERT_WEBHOOK }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: bash scripts/kontakt-retry-run.sh
+        run: node scripts/kontakt-retry-run.mjs
