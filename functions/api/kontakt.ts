@@ -35,7 +35,8 @@
  *   200 OK            — { ok: true, id, delivery: "sent" | "webhook" | "queued", archived }
  *   400 Bad Request   — { error: "validation", fields: { ... } }
  *   405 / OPTIONS     — Preflight bzw. Method Not Allowed
- *   429 Too Many Req  — { error: "rate_limit" }  (3 / 10min per IP, nur mit KONTAKT_RATE_KV)
+ *   429 Too Many Req  — { error: "rate_limit" } + Retry-After (3 gültige / 10min per IP,
+ *                       nur mit KONTAKT_RATE_KV)
  *   502 Bad Gateway   — { error: "mail_failed", retained: false, id }
  *   503 Unavailable   — { error: "mail_not_configured", retained: false, id }
  *
@@ -147,14 +148,25 @@ function jsonResponse(body: unknown, status: number, headers?: Record<string, st
   });
 }
 
-async function isRateLimited(env: Env, ip: string): Promise<boolean> {
-  // Drei Submissions pro 10 Minuten pro IP — nur wenn KV gebunden ist.
-  if (!env.KONTAKT_RATE_KV) return false;
-  const key = `kontakt:${ip}`;
-  const cur = Number((await env.KONTAKT_RATE_KV.get(key)) ?? "0");
-  if (cur >= 3) return true;
-  await env.KONTAKT_RATE_KV.put(key, String(cur + 1), { expirationTtl: 600 });
-  return false;
+/** Drei echte Einreichungen pro 10 Minuten pro IP — nur wenn KV gebunden ist. */
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_SECONDS = 600;
+
+const rateKey = (ip: string) => `kontakt:${ip}`;
+
+/** Nur lesen: Müll-Payloads und Honeypot-Treffer dürfen das Kontingent nicht aufbrauchen. */
+async function rateLimitCount(env: Env, ip: string): Promise<number> {
+  if (!env.KONTAKT_RATE_KV) return 0;
+  return Number((await env.KONTAKT_RATE_KV.get(rateKey(ip))) ?? "0");
+}
+
+/** Erst zählen, wenn die Einreichung gültig ist (nach Validierung und Honeypot). */
+async function countSubmission(env: Env, ip: string): Promise<void> {
+  if (!env.KONTAKT_RATE_KV) return;
+  const next = (await rateLimitCount(env, ip)) + 1;
+  await env.KONTAKT_RATE_KV.put(rateKey(ip), String(next), {
+    expirationTtl: RATE_LIMIT_WINDOW_SECONDS,
+  });
 }
 
 /**
@@ -228,8 +240,10 @@ async function handlePost(
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "0.0.0.0";
 
-  if (await isRateLimited(env, ip)) {
-    return jsonResponse({ error: "rate_limit" }, 429);
+  if ((await rateLimitCount(env, ip)) >= RATE_LIMIT_MAX) {
+    return jsonResponse({ error: "rate_limit" }, 429, {
+      "retry-after": String(RATE_LIMIT_WINDOW_SECONDS),
+    });
   }
 
   // Body parsen
@@ -260,6 +274,9 @@ async function handlePost(
   if (v.honeypot || !v.data) {
     return jsonResponse({ ok: true, id: "silently-dropped" }, 200);
   }
+
+  // Jetzt erst zählen: eine gültige Einreichung, nicht jeder Request davor.
+  await countSubmission(env, ip);
 
   const inquiry = v.data;
   const id = crypto.randomUUID();
