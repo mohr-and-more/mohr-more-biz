@@ -1,32 +1,3 @@
-name: Kontakt-Anfragen nachzustellen
-
-# Stellt Anfragen erneut zu, deren Mailversand gescheitert ist (KV-Archiv
-# Einträge mit delivery = failed/not_configured). Läuft alle 30 Minuten und
-# auf Zuruf. Ohne Secret `KONTAKT_RETRY_TOKEN` passiert nichts.
+name: probe
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   workflow_dispatch:
-
-jobs:
-  retry:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Retry pending contact inquiries
-        env:
-          RETRY_URL: ${{ vars.KONTAKT_RETRY_URL || 'https://mohr-more.biz/api/kontakt/retry' }}
-          RETRY_TOKEN: ${{ secrets.KONTAKT_RETRY_TOKEN }}
-        run: |
-          if [ -z "$RETRY_TOKEN" ]; then
-            echo "KONTAKT_RETRY_TOKEN ist nicht gesetzt — Lauf übersprungen."
-            exit 0
-          fi
-          code=$(curl -sS --max-time 60 -X POST "$RETRY_URL" \
-            -H "x-retry-token: $RETRY_TOKEN" \
-            -o /tmp/retry.json -w '%{http_code}')
-          cat /tmp/retry.json
-          echo
-          if [ "$code" != "200" ]; then
-            echo "Retry-Lauf fehlgeschlagen (HTTP $code)."
-            exit 1
-          fi
