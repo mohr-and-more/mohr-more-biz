@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { translations } from "@/lib/i18n";
+import { contactEndpoint } from "@/lib/contact-endpoint";
 
 /**
  * /en/contact — English contact page (MMB-468 / Sub 8)
@@ -81,7 +82,7 @@ export function EnContactPage() {
     if (typeof window !== "undefined") fd.set("page", window.location.pathname);
 
     try {
-      const res = await fetch("/api/kontakt", { method: "POST", body: fd });
+      const res = await fetch(contactEndpoint(), { method: "POST", body: fd });
       if (!res.ok) {
         const data: { error?: string } = await res.json().catch(() => ({}));
         if (data.error === "rate_limit") {

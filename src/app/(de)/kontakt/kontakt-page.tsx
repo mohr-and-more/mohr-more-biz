@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { useLang } from "@/components/i18n-provider";
 import { translations } from "@/lib/i18n";
+import { contactEndpoint } from "@/lib/contact-endpoint";
 
 /**
  * /kontakt (DE) — MMB-472
@@ -210,7 +211,7 @@ export function KontaktPage() {
         fd.set("page", window.location.pathname);
         fd.set("lang", lang);
       }
-      const res = await fetch("/api/kontakt", {
+      const res = await fetch(contactEndpoint(), {
         method: "POST",
         body: fd,
       });
