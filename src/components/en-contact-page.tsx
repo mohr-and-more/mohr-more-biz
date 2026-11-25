@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent } from "react";
+import { translations } from "@/lib/i18n";
 
 /**
  * /en/contact — English contact page (MMB-468 / Sub 8)
@@ -33,6 +34,13 @@ function buildFallbackMailto(fd: FormData): string {
   return `mailto:info@mohr-more.biz?subject=${encodeURIComponent(
     "Contact inquiry via mohr-more.biz"
   )}&body=${encodeURIComponent(body)}`;
+}
+
+/** 429: Wartezeit aus dem Retry-After-Header in Minuten, Default 10. */
+function rateLimitMessage(template: string, retryAfter: string | null): string {
+  const seconds = Number(retryAfter);
+  const minutes = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds / 60) : 10;
+  return template.replace("{minutes}", String(minutes));
 }
 
 export function EnContactPage() {
@@ -76,6 +84,18 @@ export function EnContactPage() {
       const res = await fetch("/api/kontakt", { method: "POST", body: fd });
       if (!res.ok) {
         const data: { error?: string } = await res.json().catch(() => ({}));
+        if (data.error === "rate_limit") {
+          // No mailto fallback here: the request was rejected, not lost — a second
+          // channel would only send it twice.
+          setStatus("error");
+          setErrorMsg(
+            rateLimitMessage(
+              translations.contactPage.form.errorRateLimit.en,
+              res.headers.get("retry-after")
+            )
+          );
+          return;
+        }
         setStatus("error");
         setErrorMsg(
           data.error === "mail_failed" || data.error === "mail_not_configured"

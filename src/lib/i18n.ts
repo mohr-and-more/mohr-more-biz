@@ -406,6 +406,11 @@ export const translations = {
         de: "Bitte schreiben Sie mindestens 20 Zeichen in die Nachricht.",
         en: "Please write at least 20 characters in your message.",
       },
+      /** 429 — `{minutes}` wird aus dem Retry-After-Header ersetzt. */
+      errorRateLimit: {
+        de: "Zu viele Anfragen in kurzer Zeit. Bitte warten Sie noch {minutes} Min. und senden Sie die Nachricht dann erneut.",
+        en: "Too many requests in a short time. Please wait {minutes} min and try again.",
+      },
     },
     address: {
       title: { de: "So finden Sie uns", en: "How to find us" },

@@ -87,6 +87,16 @@ function mailFailedMessage(lang: string): string {
     : "Die Nachricht konnte nicht automatisch zugestellt werden. Bitte senden Sie sie direkt per E-Mail — der Link ist mit Ihren Angaben vorausgefüllt.";
 }
 
+/**
+ * 429: Wartezeit aus dem Retry-After-Header in Minuten, Default 10.
+ * Der Server schickt Sekunden; gerundet wird auf ganze Minuten.
+ */
+function rateLimitMessage(template: string, retryAfter: string | null): string {
+  const seconds = Number(retryAfter);
+  const minutes = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds / 60) : 10;
+  return template.replace("{minutes}", String(minutes));
+}
+
 function fallbackMailLabel(lang: string): string {
   return lang === "en" ? "Send the message by email" : "Nachricht per E-Mail senden";
 }
@@ -208,6 +218,13 @@ export function KontaktPage() {
         const data: { error?: string } = await res
           .json()
           .catch(() => ({ error: "unknown" }));
+        if (data.error === "rate_limit") {
+          // Kein mailto-Ausweg: die Anfrage wurde abgewiesen, nicht verloren —
+          // ein zweiter Kanal würde sie nur doppelt senden.
+          setStatus("error");
+          setErrorMsg(rateLimitMessage(t.form.errorRateLimit[lang], res.headers.get("retry-after")));
+          return;
+        }
         setStatus("error");
         setErrorMsg(
           data.error === "mail_failed" || data.error === "mail_not_configured"
