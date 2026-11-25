@@ -378,6 +378,24 @@ export const translations = {
       consentLink: { de: "(Datenschutzerklärung)", en: "(Privacy Policy)" },
       submit: { de: "Nachricht senden", en: "Send message" },
       submitting: { de: "Wird gesendet…", en: "Sending…" },
+      sendAnother: { de: "Weitere Nachricht senden", en: "Send another message" },
+      help: {
+        de: "* Pflichtfelder. Daten werden verschlüsselt (HTTPS) an /api/kontakt übertragen.",
+        en: "* Required fields. Data sent over HTTPS to /api/kontakt.",
+      },
+      honeypot: { de: "Bitte leer lassen", en: "Please leave empty" },
+      errorDelivery: {
+        de: "Die Nachricht konnte nicht automatisch zugestellt werden. Bitte senden Sie sie direkt per E-Mail — der Link ist mit Ihren Angaben vorausgefüllt.",
+        en: "Your message could not be delivered automatically. Please send it by email directly — the link is prefilled with your details.",
+      },
+      fallbackMail: {
+        de: "Nachricht per E-Mail senden",
+        en: "Send the message by email",
+      },
+      mailSubject: {
+        de: "Kontaktanfrage über mohr-more.biz",
+        en: "Contact inquiry via mohr-more.biz",
+      },
       success: {
         de: "Vielen Dank! Wir haben Ihre Nachricht erhalten und melden uns binnen 24 Stunden bei Ihnen.",
         en: "Thank you! We've received your message and will reply within 24 hours.",
