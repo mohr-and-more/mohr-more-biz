@@ -1,0 +1,22 @@
+name: One-shot 429 patch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch anwenden
+        run: node scripts/apply-429-patch.mjs
+      - name: Commit und Push
+        run: |
+          git config user.name "AgentMohr"
+          git config user.email "agentmohr@agentmail.to"
+          git add -A
+          git commit -m "feat(kontakt): 429 zeigt die Wartezeit statt generischem Fehler"
+          git push
